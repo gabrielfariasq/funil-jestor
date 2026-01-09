@@ -8,26 +8,22 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Scrollbar Global e Customizada */
-::-webkit-scrollbar,
-.custom-scrollbar::-webkit-scrollbar {
-  width: 4px; /* Largura para scroll vertical */
-  height: 4px; /* Altura para scroll horizontal (barra inferior) */
+/* Scrollbar Global - Para garantir que o estilo do print seja aplicado em todo lugar */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
 }
 
-::-webkit-scrollbar-track,
-.custom-scrollbar::-webkit-scrollbar-track {
+::-webkit-scrollbar-track {
   background: transparent;
 }
 
-::-webkit-scrollbar-thumb,
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #569481; /* Cor verde do print/identidade */
+::-webkit-scrollbar-thumb {
+  background: #569481; /* Cor verde do destaque/print */
   border-radius: 10px;
 }
 
-::-webkit-scrollbar-thumb:hover,
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+::-webkit-scrollbar-thumb:hover {
   background: #243c38; /* Escurece levemente no hover */
 }
 
@@ -39,6 +35,21 @@ body {
 
 .kanban-column {
   min-height: calc(100vh - 180px);
+}
+
+/* Mantendo a classe para compatibilidade nos componentes */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #569481;
+  border-radius: 10px;
 }
 
 /* Transições suaves para Drag and Drop */
