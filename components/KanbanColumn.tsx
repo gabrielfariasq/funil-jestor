@@ -51,27 +51,29 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({ status, leads, onLeadClick,
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
       className={`
-        flex flex-col w-80 shrink-0 bg-[#d4d7d2]/20 rounded-xl border overflow-hidden transition-colors duration-200
+        flex flex-col w-80 shrink-0 bg-[#d4d7d2]/20 rounded-xl border overflow-hidden transition-colors duration-200 h-full
         ${isOver ? 'border-[#569481] bg-[#569481]/5' : 'border-[#78958c]/20'}
       `}
     >
-      {/* Column Header */}
-      <div className={`px-4 py-3 flex items-center justify-between border-b transition-colors ${isOver ? 'bg-[#569481]/10 border-[#569481]/30' : 'bg-white/50 border-[#78958c]/20'}`}>
+      {/* Column Header - Always at top of the column flexbox */}
+      <div className={`
+        px-4 py-3 flex items-center justify-between border-b shrink-0 z-10 transition-colors
+        ${isOver ? 'bg-[#569481]/10 border-[#569481]/30' : 'bg-white border-[#78958c]/20'}
+      `}>
         <div className="flex items-center gap-2">
           <span className={`w-2.5 h-2.5 rounded-full ${isOver ? 'bg-orange-400 animate-pulse' : 'bg-[#569481]'}`}></span>
-          <h3 className="font-bold text-xs text-[#243c38] uppercase tracking-widest">{status}</h3>
+          <h3 className="font-bold text-[11px] text-[#243c38] uppercase tracking-widest">{status}</h3>
           <span className="ml-1 bg-[#243c38] text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
             {leads.length}
           </span>
         </div>
       </div>
 
-      {/* Column Content */}
+      {/* Column Content - This div handles the scroll, keep the header fixed above */}
       <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-3 custom-scrollbar">
         {sortedLeads.length > 0 ? (
           sortedLeads.map((lead, index) => (
             <LeadCard 
-              // Usando email + status + index para garantir chave única e forçar re-renderização correta no filtro
               key={`${lead.email}-${status}-${index}`} 
               lead={lead} 
               onClick={() => onLeadClick(lead)} 

@@ -75,13 +75,13 @@ const App: React.FC = () => {
   }, [leads, searchTerm, filterResponsible, filterPriority]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#ecefea]">
-      {/* Header - Changed background to #ecefea to blend with the app background */}
-      <header className="bg-[#ecefea] border-b border-[#78958c]/20 sticky top-0 z-10 px-6 py-4">
+    <div className="h-screen flex flex-col bg-[#ecefea] overflow-hidden">
+      {/* Header - Fixed Height */}
+      <header className="bg-[#ecefea] border-b border-[#78958c]/20 shrink-0 z-10 px-6 py-4">
         <div className="max-w-[1800px] mx-auto flex flex-col xl:flex-row xl:items-center justify-between gap-4">
           
           <div className="flex flex-1 flex-wrap items-center gap-3">
-            {/* Search Bar - Maintained slightly different background to distinguish it */}
+            {/* Search Bar */}
             <div className="flex-1 min-w-[300px] flex items-center bg-white/50 backdrop-blur-sm rounded-full px-4 py-2 border border-[#d4d7d2] hover:border-[#569481] transition-colors">
               <i className="fas fa-search text-[#78958c] mr-3"></i>
               <input
@@ -144,8 +144,8 @@ const App: React.FC = () => {
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="flex-1 overflow-x-auto overflow-y-hidden custom-scrollbar p-6">
+      {/* Main Content - Flex-1 with overflow-hidden to contain the board */}
+      <main className="flex-1 overflow-hidden p-6">
         {loading && leads.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-[#78958c] gap-4">
             <div className="relative">

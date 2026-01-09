@@ -21,7 +21,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ leads, onLeadClick, onStatusC
   ];
 
   return (
-    <div className="flex gap-6 h-full pb-4">
+    <div className="flex gap-6 h-full overflow-x-auto pb-4 custom-scrollbar">
       {columns.map(status => (
         <KanbanColumn 
           key={status}
