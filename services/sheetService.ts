@@ -2,11 +2,11 @@
 import { Lead, LeadStatus, Responsible, Plan } from '../types';
 
 /**
- * CONFIGURAÇÃO DE AMBIENTE
- * No Vercel, estas variáveis devem ser configuradas na aba Settings -> Environment Variables.
+ * CONFIGURAÇÃO DIRETA
+ * Valores fixos restaurados para funcionamento imediato sem configuração de ambiente.
  */
-const SHEET_ID = process.env.SHEET_ID || '1NMWnFu5MUxM1xFoFMkhg27RLF8_WIfgaGPOBAWAMyoE';
-const APPS_SCRIPT_URL = process.env.APPS_SCRIPT_URL || ''; 
+const SHEET_ID = '1NMWnFu5MUxM1xFoFMkhg27RLF8_WIfgaGPOBAWAMyoE';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxqD-mVkL7-QmbgMnGF8oIjD_pW7PWQSWB6mfp8oHsGbe0JtUBO6RnbyPpEffPU8CYZQA/exec'; 
 
 const SHEET_CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=0`;
 const STORAGE_KEY = 'jestor_leads_cache_v3';
@@ -51,26 +51,22 @@ export async function updateLeadInStorage(updatedLead: Lead): Promise<void> {
     }
   }
 
-  // 2. Envia para a planilha se a URL do Apps Script estiver configurada
-  if (APPS_SCRIPT_URL) {
-    try {
-      // Usamos no-cors pois o Google Apps Script redireciona e o navegador bloquearia por padrão,
-      // mas o comando de escrita (POST) chega ao servidor do Google com sucesso.
-      await fetch(APPS_SCRIPT_URL, {
-        method: 'POST',
-        mode: 'no-cors', 
-        headers: {
-          'Content-Type': 'text/plain', 
-        },
-        body: JSON.stringify(updatedLead)
-      });
-      console.log("Atualização enviada para a planilha:", updatedLead.email);
-    } catch (e) {
-      console.error("Falha ao sincronizar com a planilha:", e);
-      throw new Error("Erro de sincronização. A planilha não pôde ser atualizada.");
-    }
-  } else {
-    console.warn("APPS_SCRIPT_URL não configurada. As alterações serão apenas locais.");
+  // 2. Envia para a planilha via Apps Script
+  try {
+    // Usamos no-cors pois o Google Apps Script redireciona e o navegador bloquearia por padrão,
+    // mas o comando de escrita (POST) chega ao servidor do Google com sucesso.
+    await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors', 
+      headers: {
+        'Content-Type': 'text/plain', 
+      },
+      body: JSON.stringify(updatedLead)
+    });
+    console.log("Atualização enviada para a planilha:", updatedLead.email);
+  } catch (e) {
+    console.error("Falha ao sincronizar com a planilha:", e);
+    throw new Error("Erro de sincronização. A planilha não pôde ser atualizada.");
   }
 }
 

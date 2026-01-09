@@ -1,0 +1,35 @@
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: #ecefea; /* Application Background */
+  color: #243c38; /* Primary Text */
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.kanban-column {
+  min-height: calc(100vh - 180px);
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #78958c; /* Secondary Element */
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #569481; /* Active State */
+}
+
+/* Transições suaves para Drag and Drop */
+[draggable="true"] {
+  transition: opacity 0.2s ease, transform 0.1s ease;
+}
