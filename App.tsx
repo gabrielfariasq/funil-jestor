@@ -15,11 +15,9 @@ const App: React.FC = () => {
   const [filterResponsible, setFilterResponsible] = useState('');
   const [filterPriority, setFilterPriority] = useState('');
 
-  // Sincronização automática a cada 2 minutos
+  // Carregamento inicial ao montar o componente
   useEffect(() => {
     loadData(false);
-    const interval = setInterval(() => loadData(true), 120000);
-    return () => clearInterval(interval);
   }, []);
 
   const loadData = async (force: boolean = false) => {
