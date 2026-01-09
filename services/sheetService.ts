@@ -53,8 +53,6 @@ export async function updateLeadInStorage(updatedLead: Lead): Promise<void> {
 
   // 2. Envia para a planilha via Apps Script
   try {
-    // Usamos no-cors pois o Google Apps Script redireciona e o navegador bloquearia por padrão,
-    // mas o comando de escrita (POST) chega ao servidor do Google com sucesso.
     await fetch(APPS_SCRIPT_URL, {
       method: 'POST',
       mode: 'no-cors', 
@@ -79,7 +77,6 @@ function parseCsvToLeads(csv: string): Lead[] {
   let currentField = '';
   let inQuotes = false;
 
-  // Parser robusto para lidar com vírgulas dentro de aspas (campos de texto longo)
   for (let i = 0; i < csv.length; i++) {
     const char = csv[i];
     const nextChar = csv[i + 1];
@@ -117,33 +114,56 @@ function parseCsvToLeads(csv: string): Lead[] {
 
   if (rows.length < 2) return [];
 
-  const headers = rows[0].map(h => h.trim().replace(/^"|"$/g, ''));
+  const headers = rows[0].map(h => h.trim().replace(/^"|"$/g, '').toLowerCase());
   
   const getVal = (row: string[], name: string) => {
-    const idx = headers.indexOf(name);
-    return idx !== -1 ? row[idx]?.replace(/^"|"$/g, '') : '';
+    // Busca normalizada para evitar erros com acentos ou variações de caixa
+    const normalizedName = name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    
+    const idx = headers.findIndex(h => {
+        const normalizedHeader = h.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        return normalizedHeader === normalizedName;
+    });
+    
+    return idx !== -1 ? row[idx]?.replace(/^"|"$/g, '').trim() : '';
   };
 
-  return rows.slice(1).map(row => ({
-    email: getVal(row, 'Email'),
-    creation_datetime: getVal(row, 'Creation Datetime'),
-    trial_end: getVal(row, 'Trial End'),
-    dias_de_teste: parseInt(getVal(row, 'Dias de teste')) || 0,
-    qualidade_email: getVal(row, 'Qualidade do email'),
-    prioridade: getVal(row, 'Prioridade'),
-    analise_preliminar: getVal(row, 'Análise preliminar'),
-    status: (getVal(row, 'Status') as LeadStatus) || LeadStatus.PENDING,
-    motivo_perda: getVal(row, 'Motivo de perda'),
-    segmento: getVal(row, 'Segmento'),
-    responsavel: getVal(row, 'Responsável'),
-    necessidade: getVal(row, 'Necessidade'),
-    plano: (getVal(row, 'Plano') as Plan) || '',
-    numero_usuarios: parseInt(getVal(row, 'Número de usuários')) || 0,
-    observacoes: getVal(row, 'Observações'),
-    empresa: getVal(row, 'Empresa'),
-    apto_consultoria: getVal(row, 'Apto para consultoria') === 'Sim' || getVal(row, 'Apto para consultoria') === 'TRUE' || getVal(row, 'Apto para consultoria') === 'S',
-    title: getVal(row, 'Title'),
-    id_conta: getVal(row, 'ID conta'),
-    telefone: getVal(row, 'Telefone'),
-  }));
+  return rows.slice(1).map(row => {
+    const statusVal = getVal(row, 'Status');
+    // Mapeamento flexível de status para o enum
+    let status = LeadStatus.PENDING;
+    if (statusVal) {
+        const lowerStatus = statusVal.toLowerCase();
+        if (lowerStatus.includes('pendente')) status = LeadStatus.PENDING;
+        else if (lowerStatus.includes('tentativa')) status = LeadStatus.CONTACT_ATTEMPT;
+        else if (lowerStatus.includes('reuniao')) status = LeadStatus.MEETING_SCHEDULED;
+        else if (lowerStatus.includes('proposta')) status = LeadStatus.PROPOSAL;
+        else if (lowerStatus.includes('ganho')) status = LeadStatus.WON;
+        else if (lowerStatus.includes('perdido')) status = LeadStatus.LOST;
+        else if (lowerStatus.includes('resposta')) status = LeadStatus.NO_RESPONSE;
+    }
+
+    return {
+        email: getVal(row, 'Email'),
+        creation_datetime: getVal(row, 'Creation Datetime'),
+        trial_end: getVal(row, 'Trial End'),
+        dias_de_teste: parseInt(getVal(row, 'Dias de teste')) || 0,
+        qualidade_email: getVal(row, 'Qualidade do email'),
+        prioridade: getVal(row, 'Prioridade'),
+        analise_preliminar: getVal(row, 'Análise preliminar'),
+        status: status,
+        motivo_perda: getVal(row, 'Motivo de perda'),
+        segmento: getVal(row, 'Segmento'),
+        responsavel: getVal(row, 'Responsável'),
+        necessidade: getVal(row, 'Necessidade'),
+        plano: (getVal(row, 'Plano') as Plan) || '',
+        numero_usuarios: parseInt(getVal(row, 'Número de usuários')) || 0,
+        observacoes: getVal(row, 'Observações'),
+        empresa: getVal(row, 'Empresa'),
+        apto_consultoria: getVal(row, 'Apto para consultoria') === 'Sim' || getVal(row, 'Apto para consultoria') === 'TRUE' || getVal(row, 'Apto para consultoria') === 'S',
+        title: getVal(row, 'Title'),
+        id_conta: getVal(row, 'ID conta'),
+        telefone: getVal(row, 'Telefone'),
+    };
+  });
 }

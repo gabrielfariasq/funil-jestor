@@ -69,9 +69,10 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({ status, leads, onLeadClick,
       {/* Column Content */}
       <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-3 custom-scrollbar">
         {sortedLeads.length > 0 ? (
-          sortedLeads.map(lead => (
+          sortedLeads.map((lead, index) => (
             <LeadCard 
-              key={lead.email} 
+              // Usando email + status + index para garantir chave única e forçar re-renderização correta no filtro
+              key={`${lead.email}-${status}-${index}`} 
               lead={lead} 
               onClick={() => onLeadClick(lead)} 
             />

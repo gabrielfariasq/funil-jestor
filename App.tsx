@@ -51,19 +51,26 @@ const App: React.FC = () => {
   };
 
   const filteredLeads = useMemo(() => {
+    const lowerSearch = searchTerm.toLowerCase().trim();
+    const targetResponsible = filterResponsible.toLowerCase().trim();
+    const targetPriority = filterPriority.toLowerCase().trim();
+
     return leads.filter(lead => {
-      // Search term filter
-      const lowerSearch = searchTerm.toLowerCase();
-      const matchesSearch = !searchTerm || 
-        lead.email.toLowerCase().includes(lowerSearch) || 
-        (lead.empresa && lead.empresa.toLowerCase().includes(lowerSearch)) ||
-        (lead.segmento && lead.segmento.toLowerCase().includes(lowerSearch));
+      // 1. Search filter: RESTRICTED TO NAME (TITLE) AND EMAIL ONLY
+      const leadName = (lead.title || '').toLowerCase();
+      const leadEmail = (lead.email || '').toLowerCase();
+      
+      const matchesSearch = !lowerSearch || 
+        leadName.includes(lowerSearch) || 
+        leadEmail.includes(lowerSearch);
 
-      // Responsible filter
-      const matchesResponsible = !filterResponsible || lead.responsavel === filterResponsible;
+      // 2. Responsible filter
+      const leadResponsible = (lead.responsavel || '').toString().toLowerCase().trim();
+      const matchesResponsible = !targetResponsible || leadResponsible === targetResponsible;
 
-      // Priority filter
-      const matchesPriority = !filterPriority || lead.prioridade === filterPriority;
+      // 3. Priority filter
+      const leadPriority = (lead.prioridade || '').toString().toLowerCase().trim();
+      const matchesPriority = !targetPriority || leadPriority === targetPriority;
 
       return matchesSearch && matchesResponsible && matchesPriority;
     });
@@ -71,19 +78,17 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#ecefea]">
-      {/* Header */}
-      <header className="bg-white border-b border-[#78958c]/20 sticky top-0 z-10 px-6 py-4 shadow-sm">
+      {/* Header - Changed background to #ecefea to blend with the app background */}
+      <header className="bg-[#ecefea] border-b border-[#78958c]/20 sticky top-0 z-10 px-6 py-4">
         <div className="max-w-[1800px] mx-auto flex flex-col xl:flex-row xl:items-center justify-between gap-4">
           
-          {/* Logo Section Removed per request */}
-
           <div className="flex flex-1 flex-wrap items-center gap-3">
-            {/* Search Bar */}
-            <div className="flex-1 min-w-[300px] flex items-center bg-[#d4d7d2]/30 rounded-full px-4 py-2 border border-[#d4d7d2]">
+            {/* Search Bar - Maintained slightly different background to distinguish it */}
+            <div className="flex-1 min-w-[300px] flex items-center bg-white/50 backdrop-blur-sm rounded-full px-4 py-2 border border-[#d4d7d2] hover:border-[#569481] transition-colors">
               <i className="fas fa-search text-[#78958c] mr-3"></i>
               <input
                 type="text"
-                placeholder="Buscar por email, empresa ou segmento..."
+                placeholder="Pesquisar por nome ou email..."
                 className="bg-transparent border-none focus:ring-0 w-full text-sm text-[#243c38] placeholder-[#78958c]"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -92,10 +97,10 @@ const App: React.FC = () => {
 
             {/* Filters */}
             <div className="flex items-center gap-2">
-              <div className="flex items-center bg-white border border-[#d4d7d2] rounded-lg px-3 py-1.5 gap-2">
+              <div className="flex items-center bg-white border border-[#d4d7d2] rounded-lg px-3 py-1.5 gap-2 hover:border-[#569481] transition-colors shadow-sm">
                 <i className="fas fa-user-tie text-[10px] text-[#569481]"></i>
                 <select 
-                  className="bg-transparent border-none focus:ring-0 text-xs font-bold text-[#243c38] p-0"
+                  className="bg-transparent border-none focus:ring-0 text-xs font-bold text-[#243c38] p-0 cursor-pointer"
                   value={filterResponsible}
                   onChange={(e) => setFilterResponsible(e.target.value)}
                 >
@@ -105,10 +110,10 @@ const App: React.FC = () => {
                 </select>
               </div>
 
-              <div className="flex items-center bg-white border border-[#d4d7d2] rounded-lg px-3 py-1.5 gap-2">
+              <div className="flex items-center bg-white border border-[#d4d7d2] rounded-lg px-3 py-1.5 gap-2 hover:border-[#569481] transition-colors shadow-sm">
                 <i className="fas fa-layer-group text-[10px] text-[#569481]"></i>
                 <select 
-                  className="bg-transparent border-none focus:ring-0 text-xs font-bold text-[#243c38] p-0"
+                  className="bg-transparent border-none focus:ring-0 text-xs font-bold text-[#243c38] p-0 cursor-pointer"
                   value={filterPriority}
                   onChange={(e) => setFilterPriority(e.target.value)}
                 >
@@ -123,7 +128,7 @@ const App: React.FC = () => {
 
           <div className="flex items-center gap-4 shrink-0">
             <div className="text-right hidden sm:block">
-              <p className="text-[10px] font-bold text-[#78958c] uppercase leading-none mb-1">Status Base de Dados</p>
+              <p className="text-[10px] font-bold text-[#78958c] uppercase leading-none mb-1">STATUS BASE DE DADOS</p>
               <p className="text-xs font-medium text-[#243c38] flex items-center justify-end gap-1">
                 <span className={`w-1.5 h-1.5 rounded-full ${isSyncing ? 'bg-orange-400 animate-pulse' : 'bg-green-500'}`}></span>
                 {lastSync ? `Sincronizado: ${lastSync.toLocaleTimeString()}` : 'Desconectado'}
@@ -132,7 +137,7 @@ const App: React.FC = () => {
             <button 
               onClick={() => loadData(true)}
               disabled={isSyncing}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-[#243c38] bg-white border border-[#d4d7d2] rounded-lg hover:bg-[#ecefea] transition-all shadow-sm active:scale-95 disabled:opacity-50"
+              className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-[#243c38] bg-white border border-[#d4d7d2] rounded-lg hover:bg-white/80 transition-all shadow-sm active:scale-95 disabled:opacity-50"
             >
               <i className={`fas fa-sync-alt ${isSyncing ? 'animate-spin' : ''} text-[#569481]`}></i>
               {isSyncing ? 'Atualizando...' : 'Atualizar'}
