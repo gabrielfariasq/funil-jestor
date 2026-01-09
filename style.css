@@ -1,4 +1,3 @@
-
 body {
   font-family: 'Inter', sans-serif;
   background-color: #ecefea; /* Application Background */
@@ -27,6 +26,11 @@ body {
   background: #243c38; /* Escurece levemente no hover */
 }
 
+/* Remove as setas do scrollbar (Chrome, Edge, Safari) */
+::-webkit-scrollbar-button {
+  display: none;
+}
+
 /* Suporte para Firefox */
 * {
   scrollbar-width: thin;
@@ -50,6 +54,11 @@ body {
 .custom-scrollbar::-webkit-scrollbar-thumb {
   background: #569481;
   border-radius: 10px;
+}
+
+/* Garante que também não haja setas quando usar .custom-scrollbar */
+.custom-scrollbar::-webkit-scrollbar-button {
+  display: none;
 }
 
 /* Transições suaves para Drag and Drop */
