@@ -8,25 +8,37 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-.kanban-column {
-  min-height: calc(100vh - 180px);
-}
-
+/* Scrollbar Global e Customizada */
+::-webkit-scrollbar,
 .custom-scrollbar::-webkit-scrollbar {
-  width: 4px;
+  width: 4px; /* Largura para scroll vertical */
+  height: 4px; /* Altura para scroll horizontal (barra inferior) */
 }
 
+::-webkit-scrollbar-track,
 .custom-scrollbar::-webkit-scrollbar-track {
   background: transparent;
 }
 
+::-webkit-scrollbar-thumb,
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #78958c; /* Secondary Element */
-  border-radius: 4px;
+  background: #569481; /* Cor verde do print/identidade */
+  border-radius: 10px;
 }
 
+::-webkit-scrollbar-thumb:hover,
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #569481; /* Active State */
+  background: #243c38; /* Escurece levemente no hover */
+}
+
+/* Suporte para Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #569481 transparent;
+}
+
+.kanban-column {
+  min-height: calc(100vh - 180px);
 }
 
 /* Transições suaves para Drag and Drop */
