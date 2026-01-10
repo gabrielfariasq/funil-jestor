@@ -1,3 +1,4 @@
+
 body {
   font-family: 'Inter', sans-serif;
   background-color: #ecefea; /* Application Background */
@@ -7,58 +8,57 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Scrollbar Global - Para garantir que o estilo do print seja aplicado em todo lugar */
-::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+/* Scrollbar Global e Customizada */
+::-webkit-scrollbar,
+.custom-scrollbar::-webkit-scrollbar {
+  width: 2px; /* Largura para scroll vertical */
+  height: 2px; /* Altura para scroll horizontal */
 }
 
-::-webkit-scrollbar-track {
+::-webkit-scrollbar-track,
+.custom-scrollbar::-webkit-scrollbar-track {
   background: transparent;
 }
 
-::-webkit-scrollbar-thumb {
-  background: #569481; /* Cor verde do destaque/print */
+/* Thumb Oculto por padrão */
+::-webkit-scrollbar-thumb,
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: transparent; /* Invisível inicialmente */
   border-radius: 10px;
+  transition: background-color 0.3s ease;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: #243c38; /* Escurece levemente no hover */
+/* Aparece ao passar o mouse sobre a área rolável ou sobre a própria barra */
+:hover::-webkit-scrollbar-thumb,
+.custom-scrollbar:hover::-webkit-scrollbar-thumb {
+  background-color: #569481; /* Cor da marca */
 }
 
-/* Remove as setas do scrollbar (Chrome, Edge, Safari) */
+/* Destaque adicional quando o usuário está ativamente arrastando a barra */
+::-webkit-scrollbar-thumb:active,
+.custom-scrollbar::-webkit-scrollbar-thumb:active {
+  background-color: #243c38;
+}
+
+/* Remove as setas do scrollbar */
 ::-webkit-scrollbar-button {
   display: none;
 }
 
-/* Suporte para Firefox */
+/* Suporte para Firefox - comportamento de auto-hide é nativo no sistema, 
+   mas definimos as cores para manter a consistência */
 * {
   scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 0.3s ease;
+}
+
+*:hover {
   scrollbar-color: #569481 transparent;
 }
 
 .kanban-column {
   min-height: calc(100vh - 180px);
-}
-
-/* Mantendo a classe para compatibilidade nos componentes */
-.custom-scrollbar::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #569481;
-  border-radius: 10px;
-}
-
-/* Garante que também não haja setas quando usar .custom-scrollbar */
-.custom-scrollbar::-webkit-scrollbar-button {
-  display: none;
 }
 
 /* Transições suaves para Drag and Drop */
