@@ -1,4 +1,3 @@
-
 body {
   font-family: 'Inter', sans-serif;
   background-color: #ecefea; /* Application Background */
@@ -11,8 +10,8 @@ body {
 /* Scrollbar Global e Customizada */
 ::-webkit-scrollbar,
 .custom-scrollbar::-webkit-scrollbar {
-  width: 2px; /* Largura para scroll vertical */
-  height: 2px; /* Altura para scroll horizontal */
+  width: 4px; /* Largura para scroll vertical */
+  height: 4px; /* Altura para scroll horizontal */
 }
 
 ::-webkit-scrollbar-track,

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Lead } from '../types';
 import { PRIORITY_COLORS } from '../constants';
@@ -27,6 +26,10 @@ const LeadCard: React.FC<LeadCardProps> = ({ lead, onClick }) => {
       e.currentTarget.style.opacity = '1';
     }
   };
+
+  // Helper logic to decide if the segment field should be displayed
+  const hasValidSegment = lead.segmento && lead.segmento.trim() !== '' && lead.segmento.toLowerCase() !== 'não inf.';
+  const hasResponsible = !!lead.responsavel;
 
   return (
     <div 
@@ -68,19 +71,24 @@ const LeadCard: React.FC<LeadCardProps> = ({ lead, onClick }) => {
           </span>
         </div>
 
-        {/* Info Row */}
-        <div className="flex items-center justify-between pt-2 border-t border-[#243c38]/10 mt-1">
-          <div className="flex items-center gap-1 text-[#78958c]">
-            <i className="fas fa-industry text-[10px]"></i>
-            <span className="text-[10px] font-medium truncate max-w-[100px] text-[#243c38]/70">{lead.segmento || 'Não inf.'}</span>
+        {/* Info Row - Only render if there's at least one valid info piece */}
+        {(hasValidSegment || hasResponsible) && (
+          <div className="flex items-center justify-between pt-2 border-t border-[#243c38]/10 mt-1">
+            {hasValidSegment ? (
+              <div className="flex items-center gap-1 text-[#78958c]">
+                <i className="fas fa-industry text-[10px]"></i>
+                <span className="text-[10px] font-medium truncate max-w-[100px] text-[#243c38]/70">{lead.segmento}</span>
+              </div>
+            ) : <div />}
+            
+            {hasResponsible && (
+              <div className="flex items-center gap-1 text-[#78958c]">
+                <i className="fas fa-user-tie text-[10px]"></i>
+                <span className="text-[10px] font-bold text-[#243c38] truncate max-w-[100px]">{lead.responsavel}</span>
+              </div>
+            )}
           </div>
-          {lead.responsavel && (
-            <div className="flex items-center gap-1 text-[#78958c]">
-              <i className="fas fa-user-tie text-[10px]"></i>
-              <span className="text-[10px] font-bold text-[#243c38] truncate max-w-[100px]">{lead.responsavel}</span>
-            </div>
-          )}
-        </div>
+        )}
       </div>
     </div>
   );
