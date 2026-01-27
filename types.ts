@@ -21,6 +21,27 @@ export enum Plan {
   PRO = 'Pro'
 }
 
+export enum TaskType {
+  ABORDAGEM = 'Abordagem',
+  FOLLOW_UP = 'Follow-up'
+}
+
+export enum TaskChannel {
+  WHATSAPP = 'WhatsApp',
+  EMAIL = 'E-mail',
+  LIGACAO = 'Ligação'
+}
+
+export interface Task {
+  id?: string; // Novo ID único da tarefa (Coluna A)
+  lead: string; // Nome do lead (Coluna B)
+  id_conta?: string; // ID da conta do lead (Coluna C)
+  tarefa: TaskType | string;
+  canal: TaskChannel | string;
+  data: string;
+  retorno: string; // "Sim", "Não", "Pendente"
+}
+
 export interface Lead {
   email: string;
   creation_datetime?: string;
@@ -39,7 +60,6 @@ export interface Lead {
   numero_usuarios: number;
   observacoes: string;
   apto_consultoria: boolean | string;
-  // Novos campos adicionados
   title?: string;
   id_conta?: string;
   telefone?: string;

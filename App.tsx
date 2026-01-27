@@ -1,12 +1,13 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Lead, LeadStatus, Responsible } from './types';
+import { Lead, LeadStatus, Responsible, Task } from './types';
 import KanbanBoard from './components/KanbanBoard';
 import LeadModal from './components/LeadModal';
-import { fetchLeads, updateLeadInStorage } from './services/sheetService';
+import { fetchLeads, fetchTasks, updateLeadInStorage } from './services/sheetService';
 
 const App: React.FC = () => {
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSync, setLastSync] = useState<Date | null>(null);
@@ -15,7 +16,6 @@ const App: React.FC = () => {
   const [filterResponsible, setFilterResponsible] = useState('');
   const [filterPriority, setFilterPriority] = useState('');
 
-  // Carregamento inicial ao montar o componente
   useEffect(() => {
     loadData(false);
   }, []);
@@ -25,11 +25,15 @@ const App: React.FC = () => {
     else setLoading(true);
 
     try {
-      const data = await fetchLeads(force);
-      setLeads(data);
+      const [leadsData, tasksData] = await Promise.all([
+        fetchLeads(force),
+        fetchTasks()
+      ]);
+      setLeads(leadsData);
+      setTasks(tasksData);
       setLastSync(new Date());
     } catch (error) {
-      console.error("Error loading leads:", error);
+      console.error("Error loading data:", error);
     } finally {
       setLoading(false);
       setIsSyncing(false);
@@ -37,38 +41,25 @@ const App: React.FC = () => {
   };
 
   const handleUpdateLead = async (updatedLead: Lead) => {
-    try {
-      // Update local state for immediate feedback
-      setLeads(prev => prev.map(l => l.email === updatedLead.email ? updatedLead : l));
-      await updateLeadInStorage(updatedLead);
-      setSelectedLead(null);
-    } catch (error) {
-      console.error("Error updating lead:", error);
-      alert("Erro ao atualizar lead. Verifique sua conexão.");
-    }
+    setLeads(prev => prev.map(l => l.email === updatedLead.email ? updatedLead : l));
+    await updateLeadInStorage(updatedLead);
+    setSelectedLead(null);
+  };
+
+  const handleRefreshTasks = async () => {
+    const tasksData = await fetchTasks();
+    setTasks(tasksData);
   };
 
   const filteredLeads = useMemo(() => {
     const lowerSearch = searchTerm.toLowerCase().trim();
-    const targetResponsible = filterResponsible.toLowerCase().trim();
-    const targetPriority = filterPriority.toLowerCase().trim();
-
     return leads.filter(lead => {
-      // 1. Search filter: RESTRICTED TO NAME (TITLE) AND EMAIL ONLY
-      const leadName = (lead.title || '').toLowerCase();
-      const leadEmail = (lead.email || '').toLowerCase();
-      
       const matchesSearch = !lowerSearch || 
-        leadName.includes(lowerSearch) || 
-        leadEmail.includes(lowerSearch);
-
-      // 2. Responsible filter
-      const leadResponsible = (lead.responsavel || '').toString().toLowerCase().trim();
-      const matchesResponsible = !targetResponsible || leadResponsible === targetResponsible;
-
-      // 3. Priority filter
-      const leadPriority = (lead.prioridade || '').toString().toLowerCase().trim();
-      const matchesPriority = !targetPriority || leadPriority === targetPriority;
+        (lead.title || '').toLowerCase().includes(lowerSearch) || 
+        (lead.email || '').toLowerCase().includes(lowerSearch);
+      
+      const matchesResponsible = !filterResponsible || lead.responsavel === filterResponsible;
+      const matchesPriority = !filterPriority || lead.prioridade === filterPriority;
 
       return matchesSearch && matchesResponsible && matchesPriority;
     });
@@ -76,12 +67,9 @@ const App: React.FC = () => {
 
   return (
     <div className="h-screen flex flex-col bg-[#ecefea] overflow-hidden">
-      {/* Header - Fixed Height */}
       <header className="bg-[#ecefea] border-b border-[#78958c]/20 shrink-0 z-10 px-6 py-4">
         <div className="max-w-[1800px] mx-auto flex flex-col xl:flex-row xl:items-center justify-between gap-4">
-          
           <div className="flex flex-1 flex-wrap items-center gap-3">
-            {/* Search Bar */}
             <div className="flex-1 min-w-[300px] flex items-center bg-white/50 backdrop-blur-sm rounded-full px-4 py-2 border border-[#d4d7d2] hover:border-[#569481] transition-colors">
               <i className="fas fa-search text-[#78958c] mr-3"></i>
               <input
@@ -92,83 +80,69 @@ const App: React.FC = () => {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-
-            {/* Filters */}
             <div className="flex items-center gap-2">
-              <div className="flex items-center bg-white border border-[#d4d7d2] rounded-lg px-3 py-1.5 gap-2 hover:border-[#569481] transition-colors shadow-sm">
-                <i className="fas fa-user-tie text-[10px] text-[#569481]"></i>
-                <select 
-                  className="bg-transparent border-none focus:ring-0 text-xs font-bold text-[#243c38] p-0 cursor-pointer"
-                  value={filterResponsible}
-                  onChange={(e) => setFilterResponsible(e.target.value)}
-                >
-                  <option value="">Responsável: Todos</option>
-                  <option value={Responsible.GABRIEL}>Gabriel</option>
-                  <option value={Responsible.LUCAS}>Lucas</option>
-                </select>
-              </div>
-
-              <div className="flex items-center bg-white border border-[#d4d7d2] rounded-lg px-3 py-1.5 gap-2 hover:border-[#569481] transition-colors shadow-sm">
-                <i className="fas fa-layer-group text-[10px] text-[#569481]"></i>
-                <select 
-                  className="bg-transparent border-none focus:ring-0 text-xs font-bold text-[#243c38] p-0 cursor-pointer"
-                  value={filterPriority}
-                  onChange={(e) => setFilterPriority(e.target.value)}
-                >
-                  <option value="">Prioridade: Todas</option>
-                  <option value="Alta">Alta</option>
-                  <option value="Média">Média</option>
-                  <option value="Baixa">Baixa</option>
-                </select>
-              </div>
+              <select 
+                className="bg-white border border-[#d4d7d2] rounded-lg px-3 py-1.5 text-xs font-bold text-[#243c38] hover:border-[#569481] transition-colors shadow-sm"
+                value={filterResponsible}
+                onChange={(e) => setFilterResponsible(e.target.value)}
+              >
+                <option value="">Responsável: Todos</option>
+                <option value={Responsible.GABRIEL}>Gabriel</option>
+                <option value={Responsible.LUCAS}>Lucas</option>
+              </select>
+              <select 
+                className="bg-white border border-[#d4d7d2] rounded-lg px-3 py-1.5 text-xs font-bold text-[#243c38] hover:border-[#569481] transition-colors shadow-sm"
+                value={filterPriority}
+                onChange={(e) => setFilterPriority(e.target.value)}
+              >
+                <option value="">Prioridade: Todas</option>
+                <option value="Alta">Alta</option>
+                <option value="Média">Média</option>
+                <option value="Baixa">Baixa</option>
+              </select>
             </div>
           </div>
-
           <div className="flex items-center gap-4 shrink-0">
             <div className="text-right hidden sm:block">
-              <p className="text-[10px] font-bold text-[#78958c] uppercase leading-none mb-1">STATUS BASE DE DADOS</p>
               <p className="text-xs font-medium text-[#243c38] flex items-center justify-end gap-1">
                 <span className={`w-1.5 h-1.5 rounded-full ${isSyncing ? 'bg-orange-400 animate-pulse' : 'bg-green-500'}`}></span>
                 {lastSync ? `Sincronizado: ${lastSync.toLocaleTimeString()}` : 'Desconectado'}
               </p>
             </div>
-            <button 
-              onClick={() => loadData(true)}
-              disabled={isSyncing}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-[#243c38] bg-white border border-[#d4d7d2] rounded-lg hover:bg-white/80 transition-all shadow-sm active:scale-95 disabled:opacity-50"
-            >
+            <button onClick={() => loadData(true)} disabled={isSyncing} className="flex items-center gap-2 px-4 py-2 text-sm font-bold bg-white border border-[#d4d7d2] rounded-lg shadow-sm">
               <i className={`fas fa-sync-alt ${isSyncing ? 'animate-spin' : ''} text-[#569481]`}></i>
               {isSyncing ? 'Atualizando...' : 'Atualizar'}
             </button>
           </div>
         </div>
       </header>
-
-      {/* Main Content - Flex-1 with overflow-hidden to contain the board */}
       <main className="flex-1 overflow-hidden p-6">
-        {loading && leads.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-[#78958c] gap-4">
-            <div className="relative">
-              <div className="animate-spin rounded-full h-16 w-16 border-4 border-[#d4d7d2] border-t-[#569481]"></div>
-              <i className="fas fa-database absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[#569481]"></i>
-            </div>
-            <p className="text-lg font-medium animate-pulse">Lendo planilha Google Sheets...</p>
+        {loading ? (
+          <div className="h-full flex flex-col items-center justify-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-[#569481]"></div>
           </div>
         ) : (
-          <KanbanBoard 
-            leads={filteredLeads} 
-            onLeadClick={(lead) => setSelectedLead(lead)}
-            onStatusChange={(lead, newStatus) => handleUpdateLead({ ...lead, status: newStatus })}
-          />
+          <KanbanBoard leads={filteredLeads} onLeadClick={setSelectedLead} onStatusChange={(l, s) => handleUpdateLead({ ...l, status: s })} />
         )}
       </main>
-
-      {/* Lead Modal */}
       {selectedLead && (
         <LeadModal 
           lead={selectedLead} 
+          tasks={tasks.filter(t => {
+            const leadId = (selectedLead.id_conta || '').trim().toLowerCase();
+            const taskLeadId = (t.id_conta || '').trim().toLowerCase();
+            
+            if (leadId && taskLeadId) {
+              return leadId === taskLeadId;
+            }
+            
+            const leadLabel = (selectedLead.title || selectedLead.empresa || '').toLowerCase().trim();
+            const taskLeadLabel = (t.lead || '').toLowerCase().trim();
+            return leadLabel === taskLeadLabel;
+          })}
           onClose={() => setSelectedLead(null)} 
-          onSave={handleUpdateLead} 
+          onSave={handleUpdateLead}
+          onRefreshTasks={handleRefreshTasks}
         />
       )}
     </div>

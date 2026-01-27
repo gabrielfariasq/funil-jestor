@@ -1,169 +1,184 @@
 
-import { Lead, LeadStatus, Responsible, Plan } from '../types';
+import { Lead, LeadStatus, Responsible, Plan, Task } from '../types';
 
-/**
- * CONFIGURAÇÃO DIRETA
- * Valores fixos restaurados para funcionamento imediato sem configuração de ambiente.
- */
 const SHEET_ID = '1NMWnFu5MUxM1xFoFMkhg27RLF8_WIfgaGPOBAWAMyoE';
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxqD-mVkL7-QmbgMnGF8oIjD_pW7PWQSWB6mfp8oHsGbe0JtUBO6RnbyPpEffPU8CYZQA/exec'; 
+// URL ATUALIZADA conforme seu código enviado
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx_0pZfhFZ3UNVRxggtvhOJ7IJ5ass58zfGJYTM4MrCk1z7f_JPHvU5nFOIPRhNgyc-4w/exec'; 
 
-const SHEET_CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=0`;
-const STORAGE_KEY = 'jestor_leads_cache_v3';
+const LEADS_GID = '0';
+const TASKS_GID = '2119020961'; 
 
-/**
- * Busca os leads diretamente da planilha via CSV (Leitura rápida)
- */
+const STORAGE_KEY_LEADS = 'jestor_leads_cache_v3';
+const STORAGE_KEY_TASKS = 'jestor_tasks_cache_v3';
+
+const generateId = () => Math.random().toString(36).substr(2, 9).toUpperCase();
+
 export async function fetchLeads(forceRefresh = false): Promise<Lead[]> {
   try {
-    const response = await fetch(`${SHEET_CSV_URL}&t=${Date.now()}`, {
+    const response = await fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${LEADS_GID}&t=${Date.now()}`, {
       cache: 'no-store'
     });
-    
-    if (!response.ok) throw new Error('Não foi possível carregar os dados da planilha.');
-    
+    if (!response.ok) throw new Error('Falha leads');
     const csvText = await response.text();
     const leads = parseCsvToLeads(csvText);
-    
-    // Cache local para persistência offline básica e performance
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(leads));
+    localStorage.setItem(STORAGE_KEY_LEADS, JSON.stringify(leads));
     return leads;
   } catch (error) {
-    console.error("Erro ao ler planilha:", error);
-    const cached = localStorage.getItem(STORAGE_KEY);
-    if (cached) return JSON.parse(cached);
-    throw error;
+    const cached = localStorage.getItem(STORAGE_KEY_LEADS);
+    return cached ? JSON.parse(cached) : [];
   }
 }
 
-/**
- * Envia as atualizações para o Google Apps Script (Escrita)
- */
-export async function updateLeadInStorage(updatedLead: Lead): Promise<void> {
-  // 1. Atualiza o cache local imediatamente (Optimistic UI)
-  const cached = localStorage.getItem(STORAGE_KEY);
-  if (cached) {
-    const leads: Lead[] = JSON.parse(cached);
-    const index = leads.findIndex(l => l.email === updatedLead.email);
-    if (index !== -1) {
-      leads[index] = updatedLead;
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(leads));
-    }
+export async function fetchTasks(): Promise<Task[]> {
+  try {
+    const response = await fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${TASKS_GID}&t=${Date.now()}`, {
+      cache: 'no-store'
+    });
+    if (!response.ok) throw new Error('Falha tarefas');
+    const csvText = await response.text();
+    const tasks = parseCsvToTasks(csvText);
+    localStorage.setItem(STORAGE_KEY_TASKS, JSON.stringify(tasks));
+    return tasks;
+  } catch (error) {
+    const cached = localStorage.getItem(STORAGE_KEY_TASKS);
+    return cached ? JSON.parse(cached) : [];
   }
+}
 
-  // 2. Envia para a planilha via Apps Script
+export async function updateLeadInStorage(updatedLead: Lead): Promise<void> {
   try {
     await fetch(APPS_SCRIPT_URL, {
       method: 'POST',
-      mode: 'no-cors', 
-      headers: {
-        'Content-Type': 'text/plain', 
-      },
-      body: JSON.stringify(updatedLead)
+      mode: 'no-cors',
+      body: JSON.stringify({ action: 'update_lead', ...updatedLead })
     });
-    console.log("Atualização enviada para a planilha:", updatedLead.email);
   } catch (e) {
-    console.error("Falha ao sincronizar com a planilha:", e);
-    throw new Error("Erro de sincronização. A planilha não pôde ser atualizada.");
+    console.error(e);
   }
 }
 
-/**
- * Utilitário para converter o texto CSV da planilha em objetos Lead
- */
-function parseCsvToLeads(csv: string): Lead[] {
-  const rows: string[][] = [];
-  let currentRow: string[] = [];
-  let currentField = '';
-  let inQuotes = false;
-
-  for (let i = 0; i < csv.length; i++) {
-    const char = csv[i];
-    const nextChar = csv[i + 1];
-
-    if (inQuotes) {
-      if (char === '"' && nextChar === '"') {
-        currentField += '"';
-        i++;
-      } else if (char === '"') {
-        inQuotes = false;
-      } else {
-        currentField += char;
-      }
-    } else {
-      if (char === '"') {
-        inQuotes = true;
-      } else if (char === ',') {
-        currentRow.push(currentField.trim());
-        currentField = '';
-      } else if (char === '\n' || char === '\r') {
-        currentRow.push(currentField.trim());
-        if (currentRow.length > 0) rows.push(currentRow);
-        currentRow = [];
-        currentField = '';
-        if (char === '\r' && nextChar === '\n') i++;
-      } else {
-        currentField += char;
-      }
-    }
-  }
-  if (currentRow.length > 0) {
-    currentRow.push(currentField.trim());
-    rows.push(currentRow);
-  }
-
-  if (rows.length < 2) return [];
-
-  const headers = rows[0].map(h => h.trim().replace(/^"|"$/g, '').toLowerCase());
-  
-  const getVal = (row: string[], name: string) => {
-    // Busca normalizada para evitar erros com acentos ou variações de caixa
-    const normalizedName = name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    
-    const idx = headers.findIndex(h => {
-        const normalizedHeader = h.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-        return normalizedHeader === normalizedName;
+export async function saveTaskToStorage(task: Task): Promise<void> {
+  const taskWithId = { ...task, id: task.id || generateId() };
+  try {
+    await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      body: JSON.stringify({ action: 'add_task', ...taskWithId })
     });
-    
-    return idx !== -1 ? row[idx]?.replace(/^"|"$/g, '').trim() : '';
-  };
+    const cached = localStorage.getItem(STORAGE_KEY_TASKS);
+    const tasks = cached ? JSON.parse(cached) : [];
+    tasks.push(taskWithId);
+    localStorage.setItem(STORAGE_KEY_TASKS, JSON.stringify(tasks));
+  } catch (e) {
+    console.error(e);
+  }
+}
 
-  return rows.slice(1).map(row => {
-    const statusVal = getVal(row, 'Status');
-    // Mapeamento flexível de status para o enum
-    let status = LeadStatus.PENDING;
-    if (statusVal) {
-        const lowerStatus = statusVal.toLowerCase();
-        if (lowerStatus.includes('pendente')) status = LeadStatus.PENDING;
-        else if (lowerStatus.includes('tentativa')) status = LeadStatus.CONTACT_ATTEMPT;
-        else if (lowerStatus.includes('reuniao')) status = LeadStatus.MEETING_SCHEDULED;
-        else if (lowerStatus.includes('proposta')) status = LeadStatus.PROPOSAL;
-        else if (lowerStatus.includes('ganho')) status = LeadStatus.WON;
-        else if (lowerStatus.includes('perdido')) status = LeadStatus.LOST;
-        else if (lowerStatus.includes('resposta')) status = LeadStatus.NO_RESPONSE;
+export async function updateTaskReturnInStorage(task: Task): Promise<void> {
+  try {
+    await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      body: JSON.stringify({ action: 'update_task_return', ...task })
+    });
+    const cached = localStorage.getItem(STORAGE_KEY_TASKS);
+    if (cached) {
+      const tasks: Task[] = JSON.parse(cached);
+      const updatedTasks = tasks.map(t => t.id === task.id ? task : t);
+      localStorage.setItem(STORAGE_KEY_TASKS, JSON.stringify(updatedTasks));
     }
+  } catch (e) {
+    console.error(e);
+  }
+}
 
+export async function deleteTaskFromStorage(task: Task): Promise<void> {
+  try {
+    await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      body: JSON.stringify({ action: 'delete_task', ...task })
+    });
+    const cached = localStorage.getItem(STORAGE_KEY_TASKS);
+    if (cached) {
+      const tasks: Task[] = JSON.parse(cached);
+      const updatedTasks = tasks.filter(t => t.id !== task.id);
+      localStorage.setItem(STORAGE_KEY_TASKS, JSON.stringify(updatedTasks));
+    }
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+function parseCsvToLeads(csv: string): Lead[] {
+  const lines = csv.split(/\r?\n/);
+  if (lines.length < 2) return [];
+  const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/\s/g, ''));
+  
+  return lines.slice(1).map(line => {
+    const cells = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.replace(/^"|"$/g, '').trim());
+    const get = (name: string) => {
+      const search = name.toLowerCase().replace(/\s/g, '');
+      const idx = headers.findIndex(h => h.includes(search));
+      return idx !== -1 ? cells[idx] : '';
+    };
+    
     return {
-        email: getVal(row, 'Email'),
-        creation_datetime: getVal(row, 'Creation Datetime'),
-        trial_end: getVal(row, 'Trial End'),
-        dias_de_teste: parseInt(getVal(row, 'Dias de teste')) || 0,
-        qualidade_email: getVal(row, 'Qualidade do email'),
-        prioridade: getVal(row, 'Prioridade'),
-        analise_preliminar: getVal(row, 'Análise preliminar'),
-        status: status,
-        motivo_perda: getVal(row, 'Motivo de perda'),
-        segmento: getVal(row, 'Segmento'),
-        responsavel: getVal(row, 'Responsável'),
-        necessidade: getVal(row, 'Necessidade'),
-        plano: (getVal(row, 'Plano') as Plan) || '',
-        numero_usuarios: parseInt(getVal(row, 'Número de usuários')) || 0,
-        observacoes: getVal(row, 'Observações'),
-        empresa: getVal(row, 'Empresa'),
-        apto_consultoria: getVal(row, 'Apto para consultoria') === 'Sim' || getVal(row, 'Apto para consultoria') === 'TRUE' || getVal(row, 'Apto para consultoria') === 'S',
-        title: getVal(row, 'Title'),
-        id_conta: getVal(row, 'ID conta'),
-        telefone: getVal(row, 'Telefone'),
+      email: get('email'),
+      creation_datetime: get('creation'),
+      trial_end: get('trial'),
+      dias_de_teste: parseInt(get('dias')) || 0,
+      qualidade_email: get('qualidade'),
+      prioridade: get('prioridade'),
+      analise_preliminar: get('analise'),
+      status: mapStatus(get('status')),
+      empresa: get('empresa'),
+      segmento: get('segmento'),
+      responsavel: get('responsavel'),
+      necessidade: get('necessidade'),
+      plano: get('plano'),
+      numero_usuarios: parseInt(get('usuarios')) || 0,
+      observacoes: get('observacoes'),
+      apto_consultoria: get('apto') === 'Sim',
+      title: get('title'),
+      telefone: get('telefone'),
+      id_conta: get('idconta')
     };
   });
+}
+
+function parseCsvToTasks(csv: string): Task[] {
+  const lines = csv.split(/\r?\n/);
+  if (lines.length < 2) return [];
+  const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/\s/g, ''));
+  
+  return lines.slice(1).map(line => {
+    const cells = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.replace(/^"|"$/g, '').trim());
+    const get = (name: string) => {
+      const search = name.toLowerCase().replace(/\s/g, '');
+      const idx = headers.findIndex(h => h.includes(search));
+      return idx !== -1 ? cells[idx] : '';
+    };
+    
+    return {
+      id: get('id'),
+      lead: get('lead'),
+      id_conta: get('idconta'),
+      tarefa: get('tarefa'),
+      canal: get('canal'),
+      data: get('data'),
+      retorno: get('retorno')
+    };
+  }).filter(t => t.lead || t.id_conta || t.id);
+}
+
+function mapStatus(val: string): LeadStatus {
+  const v = val.toLowerCase();
+  if (v.includes('pendente')) return LeadStatus.PENDING;
+  if (v.includes('tentativa')) return LeadStatus.CONTACT_ATTEMPT;
+  if (v.includes('reuniao')) return LeadStatus.MEETING_SCHEDULED;
+  if (v.includes('proposta')) return LeadStatus.PROPOSAL;
+  if (v.includes('ganho')) return LeadStatus.WON;
+  if (v.includes('perdido')) return LeadStatus.LOST;
+  return LeadStatus.NO_RESPONSE;
 }
