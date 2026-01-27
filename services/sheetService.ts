@@ -2,7 +2,6 @@
 import { Lead, LeadStatus, Responsible, Plan, Task } from '../types';
 
 const SHEET_ID = '1NMWnFu5MUxM1xFoFMkhg27RLF8_WIfgaGPOBAWAMyoE';
-// URL ATUALIZADA conforme seu código enviado
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx_0pZfhFZ3UNVRxggtvhOJ7IJ5ass58zfGJYTM4MrCk1z7f_JPHvU5nFOIPRhNgyc-4w/exec'; 
 
 const LEADS_GID = '0';
@@ -12,6 +11,18 @@ const STORAGE_KEY_LEADS = 'jestor_leads_cache_v3';
 const STORAGE_KEY_TASKS = 'jestor_tasks_cache_v3';
 
 const generateId = () => Math.random().toString(36).substr(2, 9).toUpperCase();
+
+/**
+ * Normaliza uma string removendo acentos, espaços e convertendo para minúsculas.
+ * Essencial para mapear colunas como "Responsável" para "responsavel".
+ */
+function normalizeString(str: string): string {
+  return str
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\s/g, '');
+}
 
 export async function fetchLeads(forceRefresh = false): Promise<Lead[]> {
   try {
@@ -113,13 +124,20 @@ export async function deleteTaskFromStorage(task: Task): Promise<void> {
 function parseCsvToLeads(csv: string): Lead[] {
   const lines = csv.split(/\r?\n/);
   if (lines.length < 2) return [];
-  const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/\s/g, ''));
   
-  return lines.slice(1).map(line => {
-    const cells = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.replace(/^"|"$/g, '').trim());
+  // Regex robusto para dividir CSV respeitando aspas
+  const splitCsv = (line: string) => line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.replace(/^"|"$/g, '').trim());
+  
+  const headers = splitCsv(lines[0]).map(h => normalizeString(h));
+  
+  // Fix: Explicitly type the map result as Lead | null to resolve type predicate assignability error
+  return lines.slice(1).map((line): Lead | null => {
+    if (!line.trim()) return null;
+    const cells = splitCsv(line);
+    
     const get = (name: string) => {
-      const search = name.toLowerCase().replace(/\s/g, '');
-      const idx = headers.findIndex(h => h.includes(search));
+      const search = normalizeString(name);
+      const idx = headers.findIndex(h => h === search || h.includes(search));
       return idx !== -1 ? cells[idx] : '';
     };
     
@@ -134,7 +152,7 @@ function parseCsvToLeads(csv: string): Lead[] {
       status: mapStatus(get('status')),
       empresa: get('empresa'),
       segmento: get('segmento'),
-      responsavel: get('responsavel'),
+      responsavel: get('responsavel'), // Agora mapeia corretamente mesmo se estiver "Responsável"
       necessidade: get('necessidade'),
       plano: get('plano'),
       numero_usuarios: parseInt(get('usuarios')) || 0,
@@ -144,19 +162,25 @@ function parseCsvToLeads(csv: string): Lead[] {
       telefone: get('telefone'),
       id_conta: get('idconta')
     };
-  });
+  }).filter((l): l is Lead => l !== null && !!l.email);
 }
 
 function parseCsvToTasks(csv: string): Task[] {
   const lines = csv.split(/\r?\n/);
   if (lines.length < 2) return [];
-  const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/\s/g, ''));
+
+  const splitCsv = (line: string) => line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.replace(/^"|"$/g, '').trim());
   
-  return lines.slice(1).map(line => {
-    const cells = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.replace(/^"|"$/g, '').trim());
+  const headers = splitCsv(lines[0]).map(h => normalizeString(h));
+  
+  // Fix: Explicitly type the map result as Task | null to resolve type predicate assignability error
+  return lines.slice(1).map((line): Task | null => {
+    if (!line.trim()) return null;
+    const cells = splitCsv(line);
+    
     const get = (name: string) => {
-      const search = name.toLowerCase().replace(/\s/g, '');
-      const idx = headers.findIndex(h => h.includes(search));
+      const search = normalizeString(name);
+      const idx = headers.findIndex(h => h === search || h.includes(search));
       return idx !== -1 ? cells[idx] : '';
     };
     
@@ -169,11 +193,11 @@ function parseCsvToTasks(csv: string): Task[] {
       data: get('data'),
       retorno: get('retorno')
     };
-  }).filter(t => t.lead || t.id_conta || t.id);
+  }).filter((t): t is Task => t !== null && (!!t.lead || !!t.id_conta || !!t.id));
 }
 
 function mapStatus(val: string): LeadStatus {
-  const v = val.toLowerCase();
+  const v = normalizeString(val);
   if (v.includes('pendente')) return LeadStatus.PENDING;
   if (v.includes('tentativa')) return LeadStatus.CONTACT_ATTEMPT;
   if (v.includes('reuniao')) return LeadStatus.MEETING_SCHEDULED;
