@@ -20,7 +20,7 @@ const LeadModal: React.FC<LeadModalProps> = ({ lead, tasks, onClose, onSave, onR
     canal: TaskChannel.WHATSAPP,
     retorno: 'Pendente'
   });
-  const [isAddingTask, setIsAddingTask] = useState(false);
+  const [isSyncingTasks, setIsSyncingTasks] = useState(false);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -36,10 +36,9 @@ const LeadModal: React.FC<LeadModalProps> = ({ lead, tasks, onClose, onSave, onR
   };
 
   const handleAddTask = async () => {
-    if (isAddingTask) return;
-    setIsAddingTask(true);
+    if (isSyncingTasks) return;
+    setIsSyncingTasks(true);
     
-    // Identificadores para garantir o vínculo
     const leadName = formData.title || formData.empresa || formData.email;
     const task: Task = {
       lead: leadName,
@@ -52,18 +51,29 @@ const LeadModal: React.FC<LeadModalProps> = ({ lead, tasks, onClose, onSave, onR
 
     try {
       await saveTaskToStorage(task);
+      // Give a small delay to allow Google Sheets Apps Script to finish writing before re-fetching CSV
+      await new Promise(resolve => setTimeout(resolve, 1500));
       onRefreshTasks();
     } catch (err) {
-      alert("Erro ao salvar.");
+      alert("Erro ao salvar no servidor. Verifique sua conexão.");
     } finally {
-      setIsAddingTask(false);
+      setIsSyncingTasks(false);
     }
   };
 
   const handleUpdateTaskReturn = async (task: Task, newReturn: string) => {
-    const updatedTask = { ...task, retorno: newReturn };
-    await updateTaskReturnInStorage(updatedTask);
-    onRefreshTasks();
+    if (isSyncingTasks) return;
+    setIsSyncingTasks(true);
+    try {
+      const updatedTask = { ...task, retorno: newReturn };
+      await updateTaskReturnInStorage(updatedTask);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      onRefreshTasks();
+    } catch (err) {
+      alert("Erro ao atualizar status da tarefa.");
+    } finally {
+      setIsSyncingTasks(false);
+    }
   };
 
   const handleDeleteTask = async (e: React.MouseEvent, task: Task) => {
@@ -75,6 +85,7 @@ const LeadModal: React.FC<LeadModalProps> = ({ lead, tasks, onClose, onSave, onR
       setIsDeleting(taskId);
       try {
         await deleteTaskFromStorage(task);
+        await new Promise(resolve => setTimeout(resolve, 1000));
         onRefreshTasks();
       } catch (err) {
         alert("Erro ao excluir tarefa.");
@@ -214,7 +225,7 @@ const LeadModal: React.FC<LeadModalProps> = ({ lead, tasks, onClose, onSave, onR
                        <label className="text-[10px] font-bold uppercase tracking-widest">ANÁLISE PRELIMINAR</label>
                     </div>
                     <p className="text-xs text-[#243c38]/80 italic leading-relaxed">
-                      "{formData.analise_preliminar || 'Possível empresa estruturada, lead mais qualificado para consultoria Jestor'}"
+                      "{formData.analise_preliminar || 'Análise automática não disponível'}"
                     </p>
                   </div>
                 </div>
@@ -303,25 +314,32 @@ const LeadModal: React.FC<LeadModalProps> = ({ lead, tasks, onClose, onSave, onR
                 </div>
                 <button 
                   onClick={handleAddTask}
-                  disabled={isAddingTask}
+                  disabled={isSyncingTasks}
                   className="bg-[#243c38] text-white px-10 py-3 rounded-xl text-sm font-bold shadow-lg hover:bg-[#569481] transition-all disabled:opacity-50 flex items-center gap-2 h-[46px]"
                 >
-                   <i className={`fas ${isAddingTask ? 'fa-spinner fa-spin' : 'fa-plus'}`}></i>
-                  {isAddingTask ? 'Registrando...' : 'Registrar'}
+                   <i className={`fas ${isSyncingTasks ? 'fa-spinner fa-spin' : 'fa-plus'}`}></i>
+                  {isSyncingTasks ? 'Sincronizando...' : 'Registrar'}
                 </button>
               </div>
 
               <div className="flex-1 space-y-4">
                 <div className="flex items-center justify-between border-b border-[#ecefea] pb-3">
                   <h3 className="text-xs font-bold text-[#78958c] uppercase tracking-widest flex items-center gap-2">
-                    <i className="fas fa-stream text-[#569481]"></i> LINHA DO TEMPO
+                    <i className={`fas fa-stream text-[#569481] ${isSyncingTasks ? 'animate-pulse' : ''}`}></i> 
+                    LINHA DO TEMPO
+                    {isSyncingTasks && <span className="text-[8px] animate-pulse">(Atualizando da Planilha...)</span>}
                   </h3>
-                  <span className="text-[10px] bg-[#ecefea] text-[#243c38] font-bold px-3 py-1 rounded-full">{tasks.length} registros</span>
+                  <div className="flex items-center gap-2">
+                    <button onClick={onRefreshTasks} disabled={isSyncingTasks} className="text-[10px] text-[#569481] font-bold hover:underline">
+                      <i className={`fas fa-sync-alt ${isSyncingTasks ? 'animate-spin' : ''} mr-1`}></i> Forçar Atualização
+                    </button>
+                    <span className="text-[10px] bg-[#ecefea] text-[#243c38] font-bold px-3 py-1 rounded-full">{tasks.length} registros</span>
+                  </div>
                 </div>
                 
                 {tasks.length > 0 ? (
                   <div className="space-y-4 pb-10">
-                    {tasks.slice().reverse().map((task, i) => {
+                    {[...tasks].reverse().map((task, i) => {
                       const channelInfo = getChannelInfo(task.canal);
                       const displayKey = task.id || `${task.data}-${i}`;
                       return (
@@ -337,13 +355,14 @@ const LeadModal: React.FC<LeadModalProps> = ({ lead, tasks, onClose, onSave, onR
                                   onClick={(e) => handleDeleteTask(e, task)}
                                   className={`text-red-400 hover:text-red-600 p-2 transition-all text-sm rounded-full hover:bg-red-50 flex items-center justify-center ${isDeleting === displayKey ? 'animate-pulse' : 'opacity-40 group-hover:opacity-100'}`}
                                   title="Remover tarefa"
-                                  disabled={!!isDeleting}
+                                  disabled={!!isDeleting || isSyncingTasks}
                                 >
                                   <i className={`fas ${isDeleting === displayKey ? 'fa-spinner fa-spin' : 'fa-trash-alt'}`}></i>
                                 </button>
                               </div>
                               <div className="flex items-center gap-3 text-[11px] text-[#78958c] mt-1">
                                 <span className="flex items-center gap-1"><i className="far fa-calendar-alt"></i> {task.data}</span>
+                                {task.id && <span className="bg-[#ecefea] px-1.5 rounded text-[8px] font-mono opacity-60">REF: {task.id}</span>}
                               </div>
                             </div>
                           </div>
@@ -351,6 +370,7 @@ const LeadModal: React.FC<LeadModalProps> = ({ lead, tasks, onClose, onSave, onR
                             <span className="text-[9px] font-bold text-[#78958c] uppercase mr-1">RETORNO DO LEAD</span>
                             <select 
                               value={task.retorno}
+                              disabled={isSyncingTasks}
                               onChange={(e) => handleUpdateTaskReturn(task, e.target.value)}
                               className={`text-xs font-bold px-4 py-2 rounded-xl border-none focus:ring-4 focus:ring-[#569481]/10 outline-none cursor-pointer shadow-sm ${task.retorno === 'Sim' ? 'bg-[#569481] text-white' : task.retorno === 'Não' ? 'bg-red-500 text-white' : 'bg-[#ecefea] text-[#243c38]'}`}
                             >
@@ -366,7 +386,7 @@ const LeadModal: React.FC<LeadModalProps> = ({ lead, tasks, onClose, onSave, onR
                 ) : (
                   <div className="h-64 flex flex-col items-center justify-center text-[#d4d7d2]">
                     <i className="fas fa-comment-slash text-3xl mb-4"></i>
-                    <p className="text-sm">Nenhuma atividade registrada.</p>
+                    <p className="text-sm">Nenhuma atividade registrada na planilha.</p>
                   </div>
                 )}
               </div>
