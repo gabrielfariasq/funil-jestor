@@ -7,7 +7,7 @@ import TasksListView from './components/TasksListView';
 import { fetchLeads, fetchTasks, updateLeadInStorage } from './services/sheetService';
 
 const App: React.FC = () => {
-  const [activeView, setActiveView] = useState<'pipeline' | 'tasks'>('tasks');
+  const [activeView, setActiveView] = useState<'pipeline' | 'tasks'>('pipeline');
   const [leads, setLeads] = useState<Lead[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
