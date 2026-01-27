@@ -2,85 +2,46 @@
 import { Lead, LeadStatus, Responsible, Plan, Task } from '../types';
 
 const SHEET_ID = '1NMWnFu5MUxM1xFoFMkhg27RLF8_WIfgaGPOBAWAMyoE';
+// URL ATUALIZADA conforme seu código enviado
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx_0pZfhFZ3UNVRxggtvhOJ7IJ5ass58zfGJYTM4MrCk1z7f_JPHvU5nFOIPRhNgyc-4w/exec'; 
 
 const LEADS_GID = '0';
 const TASKS_GID = '2119020961'; 
 
-const STORAGE_KEY_LEADS = 'jestor_leads_cache_v4';
-const STORAGE_KEY_TASKS = 'jestor_tasks_cache_v4';
+const STORAGE_KEY_LEADS = 'jestor_leads_cache_v3';
+const STORAGE_KEY_TASKS = 'jestor_tasks_cache_v3';
 
 const generateId = () => Math.random().toString(36).substr(2, 9).toUpperCase();
 
-/**
- * Fetches leads from the Google Sheet using the Visualization API.
- */
 export async function fetchLeads(forceRefresh = false): Promise<Lead[]> {
   try {
-    // Using gviz/tq endpoint which is more reliable for CSV output
-    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${LEADS_GID}`;
-    const response = await fetch(url);
-    
-    if (!response.ok) {
-      throw new Error(`Erro ${response.status}: Verifique se a planilha está configurada como "Qualquer pessoa com o link pode ler".`);
-    }
-
+    const response = await fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${LEADS_GID}&t=${Date.now()}`, {
+      cache: 'no-store'
+    });
+    if (!response.ok) throw new Error('Falha leads');
     const csvText = await response.text();
-    
-    // Check if Google returned an HTML login/error page
-    if (csvText.includes('<!DOCTYPE html>') || csvText.includes('<html') || csvText.includes('google-signin')) {
-      throw new Error('PLANILHA PRIVADA: No Google Sheets, clique em "Compartilhar" e mude para "Qualquer pessoa com o link".');
-    }
-
     const leads = parseCsvToLeads(csvText);
-    if (leads.length > 0) {
-      localStorage.setItem(STORAGE_KEY_LEADS, JSON.stringify(leads));
-    }
+    localStorage.setItem(STORAGE_KEY_LEADS, JSON.stringify(leads));
     return leads;
-  } catch (error: any) {
-    console.error("FetchLeads Error:", error.message);
+  } catch (error) {
     const cached = localStorage.getItem(STORAGE_KEY_LEADS);
     return cached ? JSON.parse(cached) : [];
   }
 }
 
-/**
- * Fetches tasks from the Google Sheet using the Visualization API.
- * This fixes the 400 error by using a more robust endpoint.
- */
 export async function fetchTasks(): Promise<Task[]> {
   try {
-    // Using gviz/tq endpoint for tasks
-    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${TASKS_GID}`;
-    const response = await fetch(url);
-    
-    if (!response.ok) {
-      if (response.status === 400) {
-        throw new Error(`Erro 400: O GID (${TASKS_GID}) da aba de Tarefas não foi encontrado ou a planilha não está publicada.`);
-      }
-      throw new Error(`Erro ${response.status}: Falha ao buscar tarefas.`);
-    }
-
+    const response = await fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${TASKS_GID}&t=${Date.now()}`, {
+      cache: 'no-store'
+    });
+    if (!response.ok) throw new Error('Falha tarefas');
     const csvText = await response.text();
-
-    // Check for HTML response
-    if (csvText.includes('<!DOCTYPE html>') || csvText.includes('<html') || csvText.includes('doc-content')) {
-      throw new Error('Acesso negado às Tarefas: Certifique-se de que a aba de tarefas também está acessível.');
-    }
-
     const tasks = parseCsvToTasks(csvText);
-    if (tasks.length > 0 || csvText.split('\n').length > 1) {
-      localStorage.setItem(STORAGE_KEY_TASKS, JSON.stringify(tasks));
-    }
+    localStorage.setItem(STORAGE_KEY_TASKS, JSON.stringify(tasks));
     return tasks;
-  } catch (error: any) {
-    console.error("FetchTasks Error:", error.message);
+  } catch (error) {
     const cached = localStorage.getItem(STORAGE_KEY_TASKS);
-    if (cached) {
-      console.warn("Retornando tarefas do cache devido a erro de rede.");
-      return JSON.parse(cached);
-    }
-    return [];
+    return cached ? JSON.parse(cached) : [];
   }
 }
 
@@ -92,7 +53,7 @@ export async function updateLeadInStorage(updatedLead: Lead): Promise<void> {
       body: JSON.stringify({ action: 'update_lead', ...updatedLead })
     });
   } catch (e) {
-    console.error("UpdateLead Error:", e);
+    console.error(e);
   }
 }
 
@@ -104,9 +65,12 @@ export async function saveTaskToStorage(task: Task): Promise<void> {
       mode: 'no-cors',
       body: JSON.stringify({ action: 'add_task', ...taskWithId })
     });
+    const cached = localStorage.getItem(STORAGE_KEY_TASKS);
+    const tasks = cached ? JSON.parse(cached) : [];
+    tasks.push(taskWithId);
+    localStorage.setItem(STORAGE_KEY_TASKS, JSON.stringify(tasks));
   } catch (e) {
-    console.error("SaveTask Error:", e);
-    throw e;
+    console.error(e);
   }
 }
 
@@ -117,9 +81,14 @@ export async function updateTaskReturnInStorage(task: Task): Promise<void> {
       mode: 'no-cors',
       body: JSON.stringify({ action: 'update_task_return', ...task })
     });
+    const cached = localStorage.getItem(STORAGE_KEY_TASKS);
+    if (cached) {
+      const tasks: Task[] = JSON.parse(cached);
+      const updatedTasks = tasks.map(t => t.id === task.id ? task : t);
+      localStorage.setItem(STORAGE_KEY_TASKS, JSON.stringify(updatedTasks));
+    }
   } catch (e) {
-    console.error("UpdateTaskReturn Error:", e);
-    throw e;
+    console.error(e);
   }
 }
 
@@ -130,19 +99,23 @@ export async function deleteTaskFromStorage(task: Task): Promise<void> {
       mode: 'no-cors',
       body: JSON.stringify({ action: 'delete_task', ...task })
     });
+    const cached = localStorage.getItem(STORAGE_KEY_TASKS);
+    if (cached) {
+      const tasks: Task[] = JSON.parse(cached);
+      const updatedTasks = tasks.filter(t => t.id !== task.id);
+      localStorage.setItem(STORAGE_KEY_TASKS, JSON.stringify(updatedTasks));
+    }
   } catch (e) {
-    console.error("DeleteTask Error:", e);
-    throw e;
+    console.error(e);
   }
 }
 
 function parseCsvToLeads(csv: string): Lead[] {
   const lines = csv.split(/\r?\n/);
   if (lines.length < 2) return [];
-  const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/^"|"$/g, '').replace(/\s/g, ''));
+  const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/\s/g, ''));
   
   return lines.slice(1).map(line => {
-    // Improved regex for CSV with quotes and commas
     const cells = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.replace(/^"|"$/g, '').trim());
     const get = (name: string) => {
       const search = name.toLowerCase().replace(/\s/g, '');
@@ -171,13 +144,13 @@ function parseCsvToLeads(csv: string): Lead[] {
       telefone: get('telefone'),
       id_conta: get('idconta')
     };
-  }).filter(l => l.email);
+  });
 }
 
 function parseCsvToTasks(csv: string): Task[] {
   const lines = csv.split(/\r?\n/);
   if (lines.length < 2) return [];
-  const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/^"|"$/g, '').replace(/\s/g, ''));
+  const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/\s/g, ''));
   
   return lines.slice(1).map(line => {
     const cells = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.replace(/^"|"$/g, '').trim());
