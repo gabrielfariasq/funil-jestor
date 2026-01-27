@@ -132,15 +132,13 @@ const App: React.FC = () => {
             const leadId = (selectedLead.id_conta || '').trim().toLowerCase();
             const taskLeadId = (t.id_conta || '').trim().toLowerCase();
             
-            // Filtro por ID de Conta (Prioritário)
-            if (leadId && taskLeadId && leadId === taskLeadId) {
-              return true;
+            if (leadId && taskLeadId) {
+              return leadId === taskLeadId;
             }
             
-            // Fallback por Nome (Normalizado)
             const leadLabel = (selectedLead.title || selectedLead.empresa || '').toLowerCase().trim();
             const taskLeadLabel = (t.lead || '').toLowerCase().trim();
-            return leadLabel !== '' && leadLabel === taskLeadLabel;
+            return leadLabel === taskLeadLabel;
           })}
           onClose={() => setSelectedLead(null)} 
           onSave={handleUpdateLead}

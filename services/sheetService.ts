@@ -2,8 +2,8 @@
 import { Lead, LeadStatus, Responsible, Plan, Task } from '../types';
 
 const SHEET_ID = '1NMWnFu5MUxM1xFoFMkhg27RLF8_WIfgaGPOBAWAMyoE';
-// URL do seu Apps Script
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzS2efe48RrWcyGSHdEapEnNqpfLzx2qvqns8-JNGpCJOKgA3x3oVUiO9jEb0Bx_zQzVw/exec'; 
+// URL ATUALIZADA conforme seu código enviado
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx_0pZfhFZ3UNVRxggtvhOJ7IJ5ass58zfGJYTM4MrCk1z7f_JPHvU5nFOIPRhNgyc-4w/exec'; 
 
 const LEADS_GID = '0';
 const TASKS_GID = '2119020961'; 
@@ -65,7 +65,6 @@ export async function saveTaskToStorage(task: Task): Promise<void> {
       mode: 'no-cors',
       body: JSON.stringify({ action: 'add_task', ...taskWithId })
     });
-    // Update local cache manually for immediate UI response
     const cached = localStorage.getItem(STORAGE_KEY_TASKS);
     const tasks = cached ? JSON.parse(cached) : [];
     tasks.push(taskWithId);
@@ -85,7 +84,7 @@ export async function updateTaskReturnInStorage(task: Task): Promise<void> {
     const cached = localStorage.getItem(STORAGE_KEY_TASKS);
     if (cached) {
       const tasks: Task[] = JSON.parse(cached);
-      const updatedTasks = tasks.map(t => (t.id && task.id && t.id === task.id) ? task : t);
+      const updatedTasks = tasks.map(t => t.id === task.id ? task : t);
       localStorage.setItem(STORAGE_KEY_TASKS, JSON.stringify(updatedTasks));
     }
   } catch (e) {
@@ -95,7 +94,6 @@ export async function updateTaskReturnInStorage(task: Task): Promise<void> {
 
 export async function deleteTaskFromStorage(task: Task): Promise<void> {
   try {
-    // É CRITICO enviar o objeto task completo, garantindo que o task.id exista
     await fetch(APPS_SCRIPT_URL, {
       method: 'POST',
       mode: 'no-cors',
@@ -152,7 +150,6 @@ function parseCsvToLeads(csv: string): Lead[] {
 function parseCsvToTasks(csv: string): Task[] {
   const lines = csv.split(/\r?\n/);
   if (lines.length < 2) return [];
-  // Cabeçalhos normalizados para evitar erros com espaços
   const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/\s/g, ''));
   
   return lines.slice(1).map(line => {
@@ -164,7 +161,7 @@ function parseCsvToTasks(csv: string): Task[] {
     };
     
     return {
-      id: get('id'), // Captura o ID da Coluna A
+      id: get('id'),
       lead: get('lead'),
       id_conta: get('idconta'),
       tarefa: get('tarefa'),
