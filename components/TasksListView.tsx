@@ -23,7 +23,8 @@ const TasksListView: React.FC<TasksListViewProps> = ({ tasks, leads, searchTerm,
       const matchesSearch = !lowerSearch || 
         (task.lead || '').toLowerCase().includes(lowerSearch) || 
         (task.tarefa || '').toLowerCase().includes(lowerSearch) ||
-        (relatedLead?.empresa || '').toLowerCase().includes(lowerSearch);
+        (relatedLead?.empresa || '').toLowerCase().includes(lowerSearch) ||
+        (relatedLead?.telefone || '').toLowerCase().includes(lowerSearch);
 
       const matchesResponsible = !filterResponsible || (relatedLead?.responsavel === filterResponsible);
 

@@ -14,6 +14,7 @@ const App: React.FC = () => {
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSync, setLastSync] = useState<Date | null>(null);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  // Fix: initialTab was undefined. Defaulting to 'overview'.
   const [initialModalTab, setInitialModalTab] = useState<'overview' | 'tasks'>('overview');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterResponsible, setFilterResponsible] = useState('');
@@ -65,7 +66,8 @@ const App: React.FC = () => {
       const matchesSearch = !lowerSearch || 
         (lead.title || '').toLowerCase().includes(lowerSearch) || 
         (lead.email || '').toLowerCase().includes(lowerSearch) ||
-        (lead.empresa || '').toLowerCase().includes(lowerSearch);
+        (lead.empresa || '').toLowerCase().includes(lowerSearch) ||
+        (lead.telefone || '').toLowerCase().includes(lowerSearch);
       
       const matchesResponsible = !filterResponsible || lead.responsavel === filterResponsible;
       const matchesPriority = !filterPriority || lead.prioridade === filterPriority;
@@ -99,7 +101,7 @@ const App: React.FC = () => {
             <i className="fas fa-search text-gray-400 mr-3 text-sm"></i>
             <input
               type="text"
-              placeholder="Pesquisar..."
+              placeholder="Pesquisar por nome, email, empresa ou telefone..."
               className="bg-transparent border-none focus:ring-0 w-full text-xs text-primary placeholder-gray-400"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
