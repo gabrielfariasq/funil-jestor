@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Lead, LeadStatus, Responsible, Plan, STATUS_COLUMNS, Task, TaskType, TaskChannel } from '../types';
 import { saveTaskToStorage, updateTaskReturnInStorage, deleteTaskFromStorage } from '../services/sheetService';
 
@@ -23,6 +23,11 @@ const LeadModal: React.FC<LeadModalProps> = ({ lead, tasks, onClose, onSave, onR
   const [isAddingTask, setIsAddingTask] = useState(false);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
+  // REGRA: Carregar tarefas sempre que o modal abrir
+  useEffect(() => {
+    onRefreshTasks();
+  }, []);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
     let finalValue: any = value;
@@ -39,11 +44,10 @@ const LeadModal: React.FC<LeadModalProps> = ({ lead, tasks, onClose, onSave, onR
     if (isAddingTask) return;
     setIsAddingTask(true);
     
-    // Identificadores para garantir o vínculo
     const leadName = formData.title || formData.empresa || formData.email;
     const task: Task = {
       lead: leadName,
-      id_conta: formData.id_conta || '',
+      id_conta: (formData.id_conta || '').toString().trim(),
       tarefa: newTask.tarefa,
       canal: newTask.canal,
       data: new Date().toLocaleString('pt-BR'),
@@ -54,7 +58,8 @@ const LeadModal: React.FC<LeadModalProps> = ({ lead, tasks, onClose, onSave, onR
       await saveTaskToStorage(task);
       onRefreshTasks();
     } catch (err) {
-      alert("Erro ao salvar.");
+      console.error(err);
+      alert("Erro ao salvar tarefa.");
     } finally {
       setIsAddingTask(false);
     }
@@ -71,13 +76,14 @@ const LeadModal: React.FC<LeadModalProps> = ({ lead, tasks, onClose, onSave, onR
     e.stopPropagation();
     
     const taskId = task.id || `${task.data}-${task.tarefa}`;
-    if (window.confirm(`Deseja realmente excluir a tarefa "${task.tarefa}"?`)) {
+    if (window.confirm(`Deseja realmente excluir a tarefa "${task.tarefa}" de ${task.data}?`)) {
       setIsDeleting(taskId);
       try {
         await deleteTaskFromStorage(task);
         onRefreshTasks();
       } catch (err) {
-        alert("Erro ao excluir tarefa.");
+        console.error(err);
+        alert("Erro ao excluir tarefa. Verifique a conexão.");
       } finally {
         setIsDeleting(null);
       }
@@ -108,7 +114,11 @@ const LeadModal: React.FC<LeadModalProps> = ({ lead, tasks, onClose, onSave, onR
               <h2 className="text-xl font-bold text-[#243c38]">{headerTitle}</h2>
               <div className="flex items-center gap-2">
                 <p className="text-sm text-[#78958c]">{formData.email}</p>
-                {formData.id_conta && <span className="text-[10px] bg-[#ecefea] px-2 py-0.5 rounded text-[#78958c] font-mono">ID: {formData.id_conta}</span>}
+                {formData.id_conta && (
+                  <span className="text-[10px] bg-[#ecefea] px-2 py-0.5 rounded text-[#78958c] font-mono border border-[#78958c]/20">
+                    ID: {formData.id_conta}
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -208,13 +218,13 @@ const LeadModal: React.FC<LeadModalProps> = ({ lead, tasks, onClose, onSave, onR
                       </div>
                     </div>
                   </div>
-                  <div className="bg-white p-5 rounded-xl border border-[#569481]/30 border-l-4">
+                  <div className="bg-white p-5 rounded-xl border border-[#569481]/30 border-l-4 shadow-sm">
                     <div className="flex items-center gap-2 mb-2 text-[#569481]">
                        <i className="fas fa-circle-notch text-xs"></i>
                        <label className="text-[10px] font-bold uppercase tracking-widest">ANÁLISE PRELIMINAR</label>
                     </div>
                     <p className="text-xs text-[#243c38]/80 italic leading-relaxed">
-                      "{formData.analise_preliminar || 'Possível empresa estruturada, lead mais qualificado para consultoria Jestor'}"
+                      "{formData.analise_preliminar || 'Análise automática indisponível'}"
                     </p>
                   </div>
                 </div>
@@ -227,12 +237,12 @@ const LeadModal: React.FC<LeadModalProps> = ({ lead, tasks, onClose, onSave, onR
                   <div className="space-y-4">
                     <div className="space-y-1">
                       <label className="text-[11px] font-bold text-[#243c38] block">Empresa</label>
-                      <input name="empresa" value={formData.empresa} onChange={handleChange} placeholder="Nome da empresa" className="w-full border border-[#d4d7d2] rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-[#569481] outline-none" />
+                      <input name="empresa" value={formData.empresa} onChange={handleChange} placeholder="Nome da empresa" className="w-full border border-[#d4d7d2] rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-[#569481] outline-none transition-all shadow-sm" />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-1">
                         <label className="text-[11px] font-bold text-[#243c38] block">Responsável</label>
-                        <select name="responsavel" value={formData.responsavel} onChange={handleChange} className="w-full border border-[#d4d7d2] rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-[#569481] outline-none">
+                        <select name="responsavel" value={formData.responsavel} onChange={handleChange} className="w-full border border-[#d4d7d2] rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-[#569481] outline-none shadow-sm">
                           <option value="">Selecione...</option>
                           <option value={Responsible.GABRIEL}>{Responsible.GABRIEL}</option>
                           <option value={Responsible.LUCAS}>{Responsible.LUCAS}</option>
@@ -240,17 +250,17 @@ const LeadModal: React.FC<LeadModalProps> = ({ lead, tasks, onClose, onSave, onR
                       </div>
                       <div className="space-y-1">
                         <label className="text-[11px] font-bold text-[#243c38] block">Segmento</label>
-                        <input name="segmento" value={formData.segmento} onChange={handleChange} placeholder="Ex: Imobiliária" className="w-full border border-[#d4d7d2] rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-[#569481] outline-none" />
+                        <input name="segmento" value={formData.segmento} onChange={handleChange} placeholder="Ex: Imobiliária" className="w-full border border-[#d4d7d2] rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-[#569481] outline-none shadow-sm" />
                       </div>
                     </div>
                     <div className="space-y-1">
                       <label className="text-[11px] font-bold text-[#243c38] block">Necessidade</label>
-                      <input name="necessidade" value={formData.necessidade} onChange={handleChange} placeholder="O que o lead busca?" className="w-full border border-[#d4d7d2] rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-[#569481] outline-none" />
+                      <input name="necessidade" value={formData.necessidade} onChange={handleChange} placeholder="O que o lead busca?" className="w-full border border-[#d4d7d2] rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-[#569481] outline-none shadow-sm" />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-1">
                         <label className="text-[11px] font-bold text-[#243c38] block">Plano</label>
-                        <select name="plano" value={formData.plano} onChange={handleChange} className="w-full border border-[#d4d7d2] rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-[#569481] outline-none">
+                        <select name="plano" value={formData.plano} onChange={handleChange} className="w-full border border-[#d4d7d2] rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-[#569481] outline-none shadow-sm">
                           <option value="">Selecione...</option>
                           <option value={Plan.HERO}>{Plan.HERO}</option>
                           <option value={Plan.PLUS}>{Plan.PLUS}</option>
@@ -260,14 +270,14 @@ const LeadModal: React.FC<LeadModalProps> = ({ lead, tasks, onClose, onSave, onR
                       </div>
                       <div className="space-y-1">
                         <label className="text-[11px] font-bold text-[#243c38] block">Nº de Usuários</label>
-                        <input type="number" name="numero_usuarios" value={formData.numero_usuarios} onChange={handleChange} className="w-full border border-[#d4d7d2] rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-[#569481] outline-none" />
+                        <input type="number" name="numero_usuarios" value={formData.numero_usuarios} onChange={handleChange} className="w-full border border-[#d4d7d2] rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-[#569481] outline-none shadow-sm" />
                       </div>
                     </div>
                     <div className="space-y-1">
                       <label className="text-[11px] font-bold text-[#243c38] block">Observações</label>
-                      <textarea name="observacoes" value={formData.observacoes} onChange={handleChange} placeholder="Anotações sobre o lead..." className="w-full border border-[#d4d7d2] rounded-xl px-4 py-3 text-sm h-32 focus:ring-2 focus:ring-[#569481] outline-none resize-none"></textarea>
+                      <textarea name="observacoes" value={formData.observacoes} onChange={handleChange} placeholder="Anotações sobre o lead..." className="w-full border border-[#d4d7d2] rounded-xl px-4 py-3 text-sm h-32 focus:ring-2 focus:ring-[#569481] outline-none resize-none shadow-sm"></textarea>
                     </div>
-                    <div className="flex items-center gap-3 p-4 border border-[#d4d7d2] rounded-xl hover:bg-[#ecefea]/20 transition-all cursor-pointer" onClick={() => setFormData(p => ({...p, apto_consultoria: !p.apto_consultoria}))}>
+                    <div className="flex items-center gap-3 p-4 border border-[#d4d7d2] rounded-xl hover:bg-[#ecefea]/20 transition-all cursor-pointer shadow-sm" onClick={() => setFormData(p => ({...p, apto_consultoria: !p.apto_consultoria}))}>
                       <input type="checkbox" checked={!!formData.apto_consultoria} readOnly className="w-5 h-5 rounded border-[#d4d7d2] text-[#569481] focus:ring-[#569481]" />
                       <label className="text-[12px] font-bold text-[#243c38] cursor-pointer">Apto para Consultoria?</label>
                     </div>
@@ -277,13 +287,13 @@ const LeadModal: React.FC<LeadModalProps> = ({ lead, tasks, onClose, onSave, onR
             </div>
           ) : (
             <div className="p-8 flex flex-col gap-6 animate-in slide-in-from-right-2 h-full">
-              <div className="bg-white border border-[#d4d7d2] p-6 rounded-2xl flex flex-wrap gap-4 items-end shadow-sm">
+              <div className="bg-[#f9fafa] border border-[#d4d7d2] p-6 rounded-2xl flex flex-wrap gap-4 items-end shadow-sm">
                 <div className="flex-1 min-w-[200px]">
                   <label className="text-[10px] font-bold text-[#78958c] uppercase block mb-2">TIPO DE ATIVIDADE</label>
                   <select 
                     value={newTask.tarefa} 
                     onChange={e => setNewTask(prev => ({...prev, tarefa: e.target.value as TaskType}))}
-                    className="w-full bg-[#f9fafa] border border-[#d4d7d2] rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#569481] outline-none"
+                    className="w-full bg-white border border-[#d4d7d2] rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#569481] outline-none shadow-sm"
                   >
                     <option value={TaskType.ABORDAGEM}>Abordagem</option>
                     <option value={TaskType.FOLLOW_UP}>Follow-up</option>
@@ -294,7 +304,7 @@ const LeadModal: React.FC<LeadModalProps> = ({ lead, tasks, onClose, onSave, onR
                   <select 
                     value={newTask.canal} 
                     onChange={e => setNewTask(prev => ({...prev, canal: e.target.value as TaskChannel}))}
-                    className="w-full bg-[#f9fafa] border border-[#d4d7d2] rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#569481] outline-none"
+                    className="w-full bg-white border border-[#d4d7d2] rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#569481] outline-none shadow-sm"
                   >
                     <option value={TaskChannel.WHATSAPP}>WhatsApp</option>
                     <option value={TaskChannel.EMAIL}>E-mail</option>
@@ -304,28 +314,30 @@ const LeadModal: React.FC<LeadModalProps> = ({ lead, tasks, onClose, onSave, onR
                 <button 
                   onClick={handleAddTask}
                   disabled={isAddingTask}
-                  className="bg-[#243c38] text-white px-10 py-3 rounded-xl text-sm font-bold shadow-lg hover:bg-[#569481] transition-all disabled:opacity-50 flex items-center gap-2 h-[46px]"
+                  className="bg-[#243c38] text-white px-10 py-3 rounded-xl text-sm font-bold shadow-lg hover:bg-[#569481] active:scale-95 transition-all disabled:opacity-50 flex items-center gap-2 h-[46px]"
                 >
                    <i className={`fas ${isAddingTask ? 'fa-spinner fa-spin' : 'fa-plus'}`}></i>
                   {isAddingTask ? 'Registrando...' : 'Registrar'}
                 </button>
               </div>
 
-              <div className="flex-1 space-y-4">
+              <div className="flex-1 space-y-4 min-h-[400px]">
                 <div className="flex items-center justify-between border-b border-[#ecefea] pb-3">
                   <h3 className="text-xs font-bold text-[#78958c] uppercase tracking-widest flex items-center gap-2">
                     <i className="fas fa-stream text-[#569481]"></i> LINHA DO TEMPO
                   </h3>
-                  <span className="text-[10px] bg-[#ecefea] text-[#243c38] font-bold px-3 py-1 rounded-full">{tasks.length} registros</span>
+                  <span className="text-[10px] bg-[#243c38] text-white font-bold px-3 py-1 rounded-full shadow-sm">
+                    {tasks.length} {tasks.length === 1 ? 'registro' : 'registros'}
+                  </span>
                 </div>
                 
                 {tasks.length > 0 ? (
                   <div className="space-y-4 pb-10">
                     {tasks.slice().reverse().map((task, i) => {
                       const channelInfo = getChannelInfo(task.canal);
-                      const displayKey = task.id || `${task.data}-${i}`;
+                      const displayKey = task.id || `task-${task.data}-${i}`;
                       return (
-                        <div key={displayKey} className="bg-white border border-[#ecefea] p-5 rounded-2xl flex items-center justify-between hover:shadow-xl transition-all border-l-4 border-l-[#569481] group relative">
+                        <div key={displayKey} className="bg-white border border-[#ecefea] p-5 rounded-2xl flex items-center justify-between hover:shadow-md transition-all border-l-4 border-l-[#569481] group relative">
                           <div className="flex items-center gap-6">
                             <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm ${channelInfo.color}`}>
                               <i className={`${channelInfo.icon} text-xl`}></i>
@@ -335,7 +347,7 @@ const LeadModal: React.FC<LeadModalProps> = ({ lead, tasks, onClose, onSave, onR
                                 <p className="text-base font-bold text-[#243c38]">{task.tarefa}</p>
                                 <button 
                                   onClick={(e) => handleDeleteTask(e, task)}
-                                  className={`text-red-400 hover:text-red-600 p-2 transition-all text-sm rounded-full hover:bg-red-50 flex items-center justify-center ${isDeleting === displayKey ? 'animate-pulse' : 'opacity-40 group-hover:opacity-100'}`}
+                                  className={`text-red-400 hover:text-red-600 p-2 transition-all text-sm rounded-full hover:bg-red-50 flex items-center justify-center ${isDeleting === displayKey ? 'animate-pulse' : 'opacity-0 group-hover:opacity-100'}`}
                                   title="Remover tarefa"
                                   disabled={!!isDeleting}
                                 >
@@ -352,7 +364,7 @@ const LeadModal: React.FC<LeadModalProps> = ({ lead, tasks, onClose, onSave, onR
                             <select 
                               value={task.retorno}
                               onChange={(e) => handleUpdateTaskReturn(task, e.target.value)}
-                              className={`text-xs font-bold px-4 py-2 rounded-xl border-none focus:ring-4 focus:ring-[#569481]/10 outline-none cursor-pointer shadow-sm ${task.retorno === 'Sim' ? 'bg-[#569481] text-white' : task.retorno === 'Não' ? 'bg-red-500 text-white' : 'bg-[#ecefea] text-[#243c38]'}`}
+                              className={`text-xs font-bold px-4 py-2 rounded-xl border-none focus:ring-4 focus:ring-[#569481]/10 outline-none cursor-pointer shadow-sm transition-all ${task.retorno === 'Sim' ? 'bg-[#569481] text-white' : task.retorno === 'Não' ? 'bg-red-500 text-white' : 'bg-[#ecefea] text-[#243c38]'}`}
                             >
                               <option value="Pendente">Aguardando...</option>
                               <option value="Sim">Sim (Respondeu)</option>
@@ -364,9 +376,10 @@ const LeadModal: React.FC<LeadModalProps> = ({ lead, tasks, onClose, onSave, onR
                     })}
                   </div>
                 ) : (
-                  <div className="h-64 flex flex-col items-center justify-center text-[#d4d7d2]">
-                    <i className="fas fa-comment-slash text-3xl mb-4"></i>
-                    <p className="text-sm">Nenhuma atividade registrada.</p>
+                  <div className="h-64 flex flex-col items-center justify-center text-[#d4d7d2] border-2 border-dashed border-[#ecefea] rounded-3xl">
+                    <i className="fas fa-comment-slash text-4xl mb-4"></i>
+                    <p className="text-sm font-medium">Nenhuma atividade registrada.</p>
+                    <p className="text-[10px] uppercase tracking-widest mt-1">Inicie o contato com o lead</p>
                   </div>
                 )}
               </div>
@@ -375,8 +388,8 @@ const LeadModal: React.FC<LeadModalProps> = ({ lead, tasks, onClose, onSave, onR
         </div>
 
         <div className="px-8 py-5 border-t border-[#ecefea] flex items-center justify-end gap-5 bg-[#fbfbfb]">
-          <button onClick={onClose} className="px-8 py-2.5 text-sm font-bold text-[#78958c] hover:text-[#243c38]">CANCELAR</button>
-          <button onClick={() => onSave(formData)} className="px-12 py-2.5 bg-[#569481] text-white text-sm font-bold rounded-xl shadow-lg hover:bg-[#243c38] transition-all flex items-center gap-2">
+          <button onClick={onClose} className="px-8 py-2.5 text-sm font-bold text-[#78958c] hover:text-[#243c38] transition-colors">CANCELAR</button>
+          <button onClick={() => onSave(formData)} className="px-12 py-2.5 bg-[#569481] text-white text-sm font-bold rounded-xl shadow-lg hover:bg-[#243c38] active:scale-95 transition-all flex items-center gap-2">
             <i className="fas fa-save"></i> SALVAR ALTERAÇÕES
           </button>
         </div>
