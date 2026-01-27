@@ -16,6 +16,7 @@ const LeadModal: React.FC<LeadModalProps> = ({ lead, tasks, initialTab = 'overvi
   const [activeTab, setActiveTab] = useState<'overview' | 'tasks'>(initialTab);
   const [formData, setFormData] = useState<Lead>({ ...lead });
   
+  // Sincroniza a aba se o lead mudar externamente (ex: clicando em outra tarefa da lista)
   useEffect(() => {
     setActiveTab(initialTab);
     setFormData({ ...lead });
@@ -98,9 +99,6 @@ const LeadModal: React.FC<LeadModalProps> = ({ lead, tasks, initialTab = 'overvi
     if (c.includes('mail')) return { icon: 'fas fa-envelope', color: 'bg-blue-100 text-blue-600' };
     return { icon: 'fas fa-phone', color: 'bg-orange-100 text-orange-600' };
   };
-
-  // Classes para os seletores estilo Jestor/Dark (imagem solicitada)
-  const selectClasses = "w-full bg-[#333333] border border-gray-600 rounded-lg px-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-[#569481] outline-none appearance-none cursor-pointer font-medium";
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-[#243c38]/40 backdrop-blur-sm animate-in fade-in duration-200">
@@ -216,6 +214,15 @@ const LeadModal: React.FC<LeadModalProps> = ({ lead, tasks, initialTab = 'overvi
                       </div>
                     </div>
                   </div>
+                  <div className="bg-white p-5 rounded-xl border border-[#569481]/30 border-l-4">
+                    <div className="flex items-center gap-2 mb-2 text-[#569481]">
+                       <i className="fas fa-circle-notch text-xs"></i>
+                       <label className="text-[10px] font-bold uppercase tracking-widest">ANÁLISE PRELIMINAR</label>
+                    </div>
+                    <p className="text-xs text-[#243c38]/80 italic leading-relaxed">
+                      "{formData.analise_preliminar || 'Possível empresa estruturada, lead mais qualificado para consultoria Jestor'}"
+                    </p>
+                  </div>
                 </div>
 
                 <div className="space-y-6">
@@ -231,20 +238,11 @@ const LeadModal: React.FC<LeadModalProps> = ({ lead, tasks, initialTab = 'overvi
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-1">
                         <label className="text-[11px] font-bold text-[#243c38] block">Responsável</label>
-                        <div className="relative group/select">
-                          <select name="responsavel" value={formData.responsavel} onChange={handleChange} className={selectClasses}>
-                            <option value="">Selecione...</option>
-                            <option value={Responsible.GABRIEL}>{Responsible.GABRIEL}</option>
-                            <option value={Responsible.LUCAS}>{Responsible.LUCAS}</option>
-                            {/* Garante que o valor vindo da planilha apareça mesmo se não for um dos pré-definidos */}
-                            {formData.responsavel && 
-                             formData.responsavel !== Responsible.GABRIEL && 
-                             formData.responsavel !== Responsible.LUCAS && (
-                              <option value={formData.responsavel}>{formData.responsavel}</option>
-                            )}
-                          </select>
-                          <i className="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-xs"></i>
-                        </div>
+                        <select name="responsavel" value={formData.responsavel} onChange={handleChange} className="w-full border border-[#d4d7d2] rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-[#569481] outline-none">
+                          <option value="">Selecione...</option>
+                          <option value={Responsible.GABRIEL}>{Responsible.GABRIEL}</option>
+                          <option value={Responsible.LUCAS}>{Responsible.LUCAS}</option>
+                        </select>
                       </div>
                       <div className="space-y-1">
                         <label className="text-[11px] font-bold text-[#243c38] block">Segmento</label>
@@ -258,16 +256,13 @@ const LeadModal: React.FC<LeadModalProps> = ({ lead, tasks, initialTab = 'overvi
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-1">
                         <label className="text-[11px] font-bold text-[#243c38] block">Plano</label>
-                        <div className="relative">
-                          <select name="plano" value={formData.plano} onChange={handleChange} className={selectClasses}>
-                            <option value="">Selecione...</option>
-                            <option value={Plan.HERO}>{Plan.HERO}</option>
-                            <option value={Plan.PLUS}>{Plan.PLUS}</option>
-                            <option value={Plan.JESTOR}>{Plan.JESTOR}</option>
-                            <option value={Plan.PRO}>{Plan.PRO}</option>
-                          </select>
-                          <i className="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-xs"></i>
-                        </div>
+                        <select name="plano" value={formData.plano} onChange={handleChange} className="w-full border border-[#d4d7d2] rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-[#569481] outline-none">
+                          <option value="">Selecione...</option>
+                          <option value={Plan.HERO}>{Plan.HERO}</option>
+                          <option value={Plan.PLUS}>{Plan.PLUS}</option>
+                          <option value={Plan.JESTOR}>{Plan.JESTOR}</option>
+                          <option value={Plan.PRO}>{Plan.PRO}</option>
+                        </select>
                       </div>
                       <div className="space-y-1">
                         <label className="text-[11px] font-bold text-[#243c38] block">Nº de Usuários</label>
@@ -291,32 +286,26 @@ const LeadModal: React.FC<LeadModalProps> = ({ lead, tasks, initialTab = 'overvi
               <div className="bg-white border border-[#d4d7d2] p-6 rounded-2xl flex flex-wrap gap-4 items-end shadow-sm">
                 <div className="flex-1 min-w-[200px]">
                   <label className="text-[10px] font-bold text-[#78958c] uppercase block mb-2">TIPO DE ATIVIDADE</label>
-                  <div className="relative">
-                    <select 
-                      value={newTask.tarefa} 
-                      onChange={e => setNewTask(prev => ({...prev, tarefa: e.target.value as TaskType}))}
-                      className={selectClasses}
-                    >
-                      <option value={TaskType.ABORDAGEM}>Abordagem</option>
-                      <option value={TaskType.FOLLOW_UP}>Follow-up</option>
-                    </select>
-                    <i className="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-xs"></i>
-                  </div>
+                  <select 
+                    value={newTask.tarefa} 
+                    onChange={e => setNewTask(prev => ({...prev, tarefa: e.target.value as TaskType}))}
+                    className="w-full bg-[#f9fafa] border border-[#d4d7d2] rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#569481] outline-none"
+                  >
+                    <option value={TaskType.ABORDAGEM}>Abordagem</option>
+                    <option value={TaskType.FOLLOW_UP}>Follow-up</option>
+                  </select>
                 </div>
                 <div className="flex-1 min-w-[200px]">
                   <label className="text-[10px] font-bold text-[#78958c] uppercase block mb-2">CANAL DE CONTATO</label>
-                  <div className="relative">
-                    <select 
-                      value={newTask.canal} 
-                      onChange={e => setNewTask(prev => ({...prev, canal: e.target.value as TaskChannel}))}
-                      className={selectClasses}
-                    >
-                      <option value={TaskChannel.WHATSAPP}>WhatsApp</option>
-                      <option value={TaskChannel.EMAIL}>E-mail</option>
-                      <option value={TaskChannel.LIGACAO}>Ligação</option>
-                    </select>
-                    <i className="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-xs"></i>
-                  </div>
+                  <select 
+                    value={newTask.canal} 
+                    onChange={e => setNewTask(prev => ({...prev, canal: e.target.value as TaskChannel}))}
+                    className="w-full bg-[#f9fafa] border border-[#d4d7d2] rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#569481] outline-none"
+                  >
+                    <option value={TaskChannel.WHATSAPP}>WhatsApp</option>
+                    <option value={TaskChannel.EMAIL}>E-mail</option>
+                    <option value={TaskChannel.LIGACAO}>Ligação</option>
+                  </select>
                 </div>
                 <button 
                   onClick={handleAddTask}
