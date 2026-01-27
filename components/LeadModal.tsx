@@ -1,20 +1,27 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Lead, LeadStatus, Responsible, Plan, STATUS_COLUMNS, Task, TaskType, TaskChannel } from '../types';
 import { saveTaskToStorage, updateTaskReturnInStorage, deleteTaskFromStorage } from '../services/sheetService';
 
 interface LeadModalProps {
   lead: Lead;
   tasks: Task[];
+  initialTab?: 'overview' | 'tasks';
   onClose: () => void;
   onSave: (lead: Lead) => void;
   onRefreshTasks: () => void;
 }
 
-const LeadModal: React.FC<LeadModalProps> = ({ lead, tasks, onClose, onSave, onRefreshTasks }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'tasks'>('overview');
+const LeadModal: React.FC<LeadModalProps> = ({ lead, tasks, initialTab = 'overview', onClose, onSave, onRefreshTasks }) => {
+  const [activeTab, setActiveTab] = useState<'overview' | 'tasks'>(initialTab);
   const [formData, setFormData] = useState<Lead>({ ...lead });
   
+  // Sincroniza a aba se o lead mudar externamente (ex: clicando em outra tarefa da lista)
+  useEffect(() => {
+    setActiveTab(initialTab);
+    setFormData({ ...lead });
+  }, [lead, initialTab]);
+
   const [newTask, setNewTask] = useState({
     tarefa: TaskType.ABORDAGEM,
     canal: TaskChannel.WHATSAPP,
@@ -39,7 +46,6 @@ const LeadModal: React.FC<LeadModalProps> = ({ lead, tasks, onClose, onSave, onR
     if (isAddingTask) return;
     setIsAddingTask(true);
     
-    // Identificadores para garantir o vínculo
     const leadName = formData.title || formData.empresa || formData.email;
     const task: Task = {
       lead: leadName,
@@ -95,8 +101,8 @@ const LeadModal: React.FC<LeadModalProps> = ({ lead, tasks, onClose, onSave, onR
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#243c38]/40 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-[1000px] max-h-[95vh] flex flex-col overflow-hidden">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-[#243c38]/40 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-[1000px] max-h-[95vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
         
         {/* Header */}
         <div className="px-6 py-4 border-b border-[#ecefea] flex items-center justify-between">
