@@ -2,11 +2,12 @@
 export enum LeadStatus {
   PENDING = 'Pendente',
   CONTACT_ATTEMPT = 'Tentativa de contato',
+  EM_CONTATO = 'Em contato',
   MEETING_SCHEDULED = 'Reunião agendada',
   PROPOSAL = 'Proposta',
   WON = 'Ganho',
   LOST = 'Perdido',
-  NO_RESPONSE = 'Sem resposta'
+  NO_RESPONSE = 'Descartado'
 }
 
 export enum Responsible {
@@ -68,6 +69,7 @@ export interface Lead {
 export const STATUS_COLUMNS = [
   LeadStatus.PENDING,
   LeadStatus.CONTACT_ATTEMPT,
+  LeadStatus.EM_CONTATO,
   LeadStatus.MEETING_SCHEDULED,
   LeadStatus.PROPOSAL,
   LeadStatus.WON, 

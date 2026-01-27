@@ -17,6 +17,7 @@ const generateId = () => Math.random().toString(36).substr(2, 9).toUpperCase();
  * Essencial para mapear colunas como "Responsável" para "responsavel".
  */
 function normalizeString(str: string): string {
+  if (!str) return '';
   return str
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
@@ -125,12 +126,10 @@ function parseCsvToLeads(csv: string): Lead[] {
   const lines = csv.split(/\r?\n/);
   if (lines.length < 2) return [];
   
-  // Regex robusto para dividir CSV respeitando aspas
   const splitCsv = (line: string) => line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.replace(/^"|"$/g, '').trim());
   
   const headers = splitCsv(lines[0]).map(h => normalizeString(h));
   
-  // Fix: Explicitly type the map result as Lead | null to resolve type predicate assignability error
   return lines.slice(1).map((line): Lead | null => {
     if (!line.trim()) return null;
     const cells = splitCsv(line);
@@ -152,7 +151,7 @@ function parseCsvToLeads(csv: string): Lead[] {
       status: mapStatus(get('status')),
       empresa: get('empresa'),
       segmento: get('segmento'),
-      responsavel: get('responsavel'), // Agora mapeia corretamente mesmo se estiver "Responsável"
+      responsavel: get('responsavel'),
       necessidade: get('necessidade'),
       plano: get('plano'),
       numero_usuarios: parseInt(get('usuarios')) || 0,
@@ -173,7 +172,6 @@ function parseCsvToTasks(csv: string): Task[] {
   
   const headers = splitCsv(lines[0]).map(h => normalizeString(h));
   
-  // Fix: Explicitly type the map result as Task | null to resolve type predicate assignability error
   return lines.slice(1).map((line): Task | null => {
     if (!line.trim()) return null;
     const cells = splitCsv(line);
@@ -200,9 +198,11 @@ function mapStatus(val: string): LeadStatus {
   const v = normalizeString(val);
   if (v.includes('pendente')) return LeadStatus.PENDING;
   if (v.includes('tentativa')) return LeadStatus.CONTACT_ATTEMPT;
+  if (v.includes('emcontato')) return LeadStatus.EM_CONTATO;
   if (v.includes('reuniao')) return LeadStatus.MEETING_SCHEDULED;
   if (v.includes('proposta')) return LeadStatus.PROPOSAL;
   if (v.includes('ganho')) return LeadStatus.WON;
   if (v.includes('perdido')) return LeadStatus.LOST;
+  if (v.includes('descartado') || v.includes('semresposta')) return LeadStatus.NO_RESPONSE;
   return LeadStatus.NO_RESPONSE;
 }

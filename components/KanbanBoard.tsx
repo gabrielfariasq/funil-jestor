@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Lead, LeadStatus } from '../types';
+import { Lead, LeadStatus, STATUS_COLUMNS } from '../types';
 import KanbanColumn from './KanbanColumn';
 
 interface KanbanBoardProps {
@@ -10,15 +10,8 @@ interface KanbanBoardProps {
 }
 
 const KanbanBoard: React.FC<KanbanBoardProps> = ({ leads, onLeadClick, onStatusChange }) => {
-  const columns = [
-    LeadStatus.PENDING,
-    LeadStatus.CONTACT_ATTEMPT,
-    LeadStatus.MEETING_SCHEDULED,
-    LeadStatus.PROPOSAL,
-    LeadStatus.WON,
-    LeadStatus.LOST,
-    LeadStatus.NO_RESPONSE
-  ];
+  // Utilizamos a constante centralizada em vez de repetir a lista
+  const columns = STATUS_COLUMNS;
 
   return (
     <div className="flex gap-6 h-full overflow-x-auto pb-4 custom-scrollbar">
