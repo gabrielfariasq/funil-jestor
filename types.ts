@@ -34,13 +34,14 @@ export enum TaskChannel {
 }
 
 export interface Task {
-  id?: string; // Novo ID único da tarefa (Coluna A)
+  id?: string; // ID único da tarefa (Coluna A)
   lead: string; // Nome do lead (Coluna B)
   id_conta?: string; // ID da conta do lead (Coluna C)
-  tarefa: TaskType | string;
-  canal: TaskChannel | string;
-  data: string;
-  retorno: string; // "Sim", "Não", "Pendente"
+  tarefa: TaskType | string; // (Coluna D)
+  canal: TaskChannel | string; // (Coluna E)
+  data: string; // (Coluna F)
+  retorno: string; // (Coluna G)
+  responsavel?: string; // Responsável pela tarefa (Coluna H)
 }
 
 export interface Lead {

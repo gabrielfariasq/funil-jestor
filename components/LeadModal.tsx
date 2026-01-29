@@ -16,7 +16,6 @@ const LeadModal: React.FC<LeadModalProps> = ({ lead, tasks, initialTab = 'overvi
   const [activeTab, setActiveTab] = useState<'overview' | 'tasks'>(initialTab);
   const [formData, setFormData] = useState<Lead>({ ...lead });
   
-  // Sincroniza a aba se o lead mudar externamente (ex: clicando em outra tarefa da lista)
   useEffect(() => {
     setActiveTab(initialTab);
     setFormData({ ...lead });
@@ -53,7 +52,8 @@ const LeadModal: React.FC<LeadModalProps> = ({ lead, tasks, initialTab = 'overvi
       tarefa: newTask.tarefa,
       canal: newTask.canal,
       data: new Date().toLocaleString('pt-BR'),
-      retorno: 'Pendente'
+      retorno: 'Pendente',
+      responsavel: formData.responsavel // Atribui o responsável do lead à tarefa
     };
 
     try {
@@ -350,6 +350,11 @@ const LeadModal: React.FC<LeadModalProps> = ({ lead, tasks, initialTab = 'overvi
                               </div>
                               <div className="flex items-center gap-3 text-[11px] text-[#78958c] mt-1">
                                 <span className="flex items-center gap-1"><i className="far fa-calendar-alt"></i> {task.data}</span>
+                                {task.responsavel && (
+                                  <span className="flex items-center gap-1 ml-2 px-2 py-0.5 bg-[#ecefea] rounded-full">
+                                    <i className="fas fa-user-tie text-[9px]"></i> {task.responsavel}
+                                  </span>
+                                )}
                               </div>
                             </div>
                           </div>

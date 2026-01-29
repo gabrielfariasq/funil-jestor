@@ -2,7 +2,7 @@
 import { Lead, LeadStatus, Responsible, Plan, Task } from '../types';
 
 const SHEET_ID = '1NMWnFu5MUxM1xFoFMkhg27RLF8_WIfgaGPOBAWAMyoE';
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx_0pZfhFZ3UNVRxggtvhOJ7IJ5ass58zfGJYTM4MrCk1z7f_JPHvU5nFOIPRhNgyc-4w/exec'; 
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbypz2uap6sGZzG3lznqHsGDNXJh_yzIUPekc4bbsQjRGO9J1fsWBtBXkRVq2g8521DiZw/exec'; 
 
 const LEADS_GID = '0';
 const TASKS_GID = '2119020961'; 
@@ -189,7 +189,8 @@ function parseCsvToTasks(csv: string): Task[] {
       tarefa: get('tarefa'),
       canal: get('canal'),
       data: get('data'),
-      retorno: get('retorno')
+      retorno: get('retorno'),
+      responsavel: get('responsavel') // Novo mapeamento da Coluna H
     };
   }).filter((t): t is Task => t !== null && (!!t.lead || !!t.id_conta || !!t.id));
 }

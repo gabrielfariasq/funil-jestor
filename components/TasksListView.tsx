@@ -24,11 +24,14 @@ const TasksListView: React.FC<TasksListViewProps> = ({ tasks, leads, searchTerm,
         (task.lead || '').toLowerCase().includes(lowerSearch) || 
         (task.tarefa || '').toLowerCase().includes(lowerSearch) ||
         (task.id_conta || '').toLowerCase().includes(lowerSearch) ||
+        (task.responsavel || '').toLowerCase().includes(lowerSearch) ||
         (relatedLead?.empresa || '').toLowerCase().includes(lowerSearch) ||
         (relatedLead?.telefone || '').toLowerCase().includes(lowerSearch) ||
         (relatedLead?.id_conta || '').toLowerCase().includes(lowerSearch);
 
-      const matchesResponsible = !filterResponsible || (relatedLead?.responsavel === filterResponsible);
+      // Prioriza o responsável da tarefa, se não houver, usa o do lead relacionado
+      const taskResponsible = task.responsavel || relatedLead?.responsavel;
+      const matchesResponsible = !filterResponsible || (taskResponsible === filterResponsible);
 
       return matchesSearch && matchesResponsible;
     }).reverse(); // Most recent first
@@ -74,6 +77,7 @@ const TasksListView: React.FC<TasksListViewProps> = ({ tasks, leads, searchTerm,
             
             const priorityInfo = getPriorityInfo(relatedLead?.prioridade || 'Baixa');
             const channelClass = getChannelColor(task.canal);
+            const displayResponsible = task.responsavel || relatedLead?.responsavel || 'N/A';
 
             return (
               <div 
@@ -89,9 +93,14 @@ const TasksListView: React.FC<TasksListViewProps> = ({ tasks, leads, searchTerm,
                   </div>
 
                   <div className="flex-1 min-w-0">
-                    <h4 className="font-bold text-primary text-[14px] truncate">
-                      {task.tarefa} com {relatedLead?.empresa || task.lead}
-                    </h4>
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-bold text-primary text-[14px] truncate">
+                        {task.tarefa} com {relatedLead?.empresa || task.lead}
+                      </h4>
+                      <span className="text-[10px] text-gray-400 font-medium px-2 py-0.5 bg-gray-50 rounded-full flex items-center gap-1">
+                        <i className="fas fa-user-tie text-[8px]"></i> {displayResponsible}
+                      </span>
+                    </div>
                     <div className="flex items-center gap-6 mt-2">
                       <div className="flex items-center gap-1.5 text-gray-400 text-[11px]">
                         <i className="far fa-calendar-alt"></i>
