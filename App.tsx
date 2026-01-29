@@ -1,13 +1,15 @@
 
+// Adicionando importação do React para resolver o erro 'Cannot find namespace React'
 import React, { useState, useEffect, useMemo } from 'react';
 import { Lead, LeadStatus, Responsible, Task } from './types';
 import KanbanBoard from './components/KanbanBoard';
 import LeadModal from './components/LeadModal';
 import TasksListView from './components/TasksListView';
+import DashboardView from './components/DashboardView';
 import { fetchLeads, fetchTasks, updateLeadInStorage } from './services/sheetService';
 
 const App: React.FC = () => {
-  const [activeView, setActiveView] = useState<'pipeline' | 'tasks'>('pipeline');
+  const [activeView, setActiveView] = useState<'pipeline' | 'tasks' | 'dashboard'>('pipeline');
   const [leads, setLeads] = useState<Lead[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
@@ -86,6 +88,12 @@ const App: React.FC = () => {
         <div className="max-w-[1800px] mx-auto flex items-center gap-6">
           <nav className="flex items-center bg-white/40 p-1 rounded-xl border border-gray-200/50 shadow-sm">
             <button 
+              onClick={() => setActiveView('dashboard')}
+              className={`px-5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-2 ${activeView === 'dashboard' ? 'bg-white text-primary shadow-sm' : 'text-gray-500 hover:text-primary'}`}
+            >
+              <i className="fas fa-chart-line text-[10px]"></i> Dashboard
+            </button>
+            <button 
               onClick={() => setActiveView('pipeline')}
               className={`px-5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-2 ${activeView === 'pipeline' ? 'bg-white text-primary shadow-sm' : 'text-gray-500 hover:text-primary'}`}
             >
@@ -111,25 +119,29 @@ const App: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-3">
-            <select 
-              className="bg-white border border-gray-200/50 rounded-full px-4 py-2 text-[10px] font-bold text-primary hover:border-accent transition-colors shadow-sm outline-none appearance-none min-w-[150px]"
-              value={filterResponsible}
-              onChange={(e) => setFilterResponsible(e.target.value)}
-            >
-              <option value="">Responsável: Todos</option>
-              <option value={Responsible.GABRIEL}>Gabriel</option>
-              <option value={Responsible.LUCAS}>Lucas</option>
-            </select>
-            <select 
-              className="bg-white border border-gray-200/50 rounded-full px-4 py-2 text-[10px] font-bold text-primary hover:border-accent transition-colors shadow-sm outline-none appearance-none min-w-[150px]"
-              value={filterPriority}
-              onChange={(e) => setFilterPriority(e.target.value)}
-            >
-              <option value="">Prioridade: Todas</option>
-              <option value="Alta">Alta</option>
-              <option value="Média">Média</option>
-              <option value="Baixa">Baixa</option>
-            </select>
+            {activeView !== 'dashboard' && (
+              <>
+                <select 
+                  className="bg-white border border-gray-200/50 rounded-full px-4 py-2 text-[10px] font-bold text-primary hover:border-accent transition-colors shadow-sm outline-none appearance-none min-w-[150px]"
+                  value={filterResponsible}
+                  onChange={(e) => setFilterResponsible(e.target.value)}
+                >
+                  <option value="">Responsável: Todos</option>
+                  <option value={Responsible.GABRIEL}>Gabriel</option>
+                  <option value={Responsible.LUCAS}>Lucas</option>
+                </select>
+                <select 
+                  className="bg-white border border-gray-200/50 rounded-full px-4 py-2 text-[10px] font-bold text-primary hover:border-accent transition-colors shadow-sm outline-none appearance-none min-w-[150px]"
+                  value={filterPriority}
+                  onChange={(e) => setFilterPriority(e.target.value)}
+                >
+                  <option value="">Prioridade: Todas</option>
+                  <option value="Alta">Alta</option>
+                  <option value="Média">Média</option>
+                  <option value="Baixa">Baixa</option>
+                </select>
+              </>
+            )}
             
             <button 
               onClick={() => loadData(true)} 
@@ -158,13 +170,18 @@ const App: React.FC = () => {
               onLeadClick={(lead) => handleOpenLead(lead, 'overview')} 
               onStatusChange={(l, s) => handleUpdateLead({ ...l, status: s })} 
             />
-          ) : (
+          ) : activeView === 'tasks' ? (
             <TasksListView 
               tasks={tasks} 
               leads={leads} 
               searchTerm={searchTerm}
               filterResponsible={filterResponsible}
               onTaskClick={(lead) => handleOpenLead(lead, 'tasks')}
+            />
+          ) : (
+            <DashboardView 
+              leads={leads}
+              tasks={tasks}
             />
           )
         )}
