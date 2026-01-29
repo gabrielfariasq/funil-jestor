@@ -14,7 +14,6 @@ const App: React.FC = () => {
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSync, setLastSync] = useState<Date | null>(null);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
-  // Fix: initialTab was undefined. Defaulting to 'overview'.
   const [initialModalTab, setInitialModalTab] = useState<'overview' | 'tasks'>('overview');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterResponsible, setFilterResponsible] = useState('');
@@ -29,15 +28,19 @@ const App: React.FC = () => {
     else setLoading(true);
 
     try {
+      console.log("Iniciando carregamento de dados da planilha...");
       const [leadsData, tasksData] = await Promise.all([
         fetchLeads(force),
         fetchTasks()
       ]);
+      
+      console.log(`Dados carregados: ${leadsData.length} leads, ${tasksData.length} tarefas.`);
+      
       setLeads(leadsData);
       setTasks(tasksData);
       setLastSync(new Date());
     } catch (error) {
-      console.error("Error loading data:", error);
+      console.error("Erro fatal ao carregar dados:", error);
     } finally {
       setLoading(false);
       setIsSyncing(false);
@@ -81,8 +84,6 @@ const App: React.FC = () => {
     <div className="h-screen flex flex-col bg-[#ecefea] overflow-hidden">
       <header className="bg-[#ecefea] shrink-0 z-20 px-6 py-4">
         <div className="max-w-[1800px] mx-auto flex items-center gap-6">
-          {/* Logo removed as requested */}
-          
           <nav className="flex items-center bg-white/40 p-1 rounded-xl border border-gray-200/50 shadow-sm">
             <button 
               onClick={() => setActiveView('pipeline')}
@@ -130,8 +131,14 @@ const App: React.FC = () => {
               <option value="Baixa">Baixa</option>
             </select>
             
-            <button onClick={() => loadData(true)} disabled={isSyncing} className="p-2 text-gray-400 hover:text-accent transition-colors">
+            <button 
+              onClick={() => loadData(true)} 
+              disabled={isSyncing} 
+              className="p-2 text-gray-400 hover:text-accent transition-colors flex items-center gap-2"
+              title="Sincronizar com a planilha"
+            >
               <i className={`fas fa-sync-alt ${isSyncing ? 'animate-spin' : ''}`}></i>
+              {isSyncing && <span className="text-[9px] font-bold uppercase">Sincronizando...</span>}
             </button>
           </div>
         </div>
@@ -141,7 +148,8 @@ const App: React.FC = () => {
         {loading ? (
           <div className="h-full flex flex-col items-center justify-center">
             <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-accent"></div>
-            <p className="mt-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Carregando dados...</p>
+            <p className="mt-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Recuperando dados da planilha...</p>
+            <p className="mt-2 text-[9px] text-gray-400 italic">Isso pode levar alguns segundos após a limpeza do cache</p>
           </div>
         ) : (
           activeView === 'pipeline' ? (
