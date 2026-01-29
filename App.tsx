@@ -67,7 +67,8 @@ const App: React.FC = () => {
         (lead.title || '').toLowerCase().includes(lowerSearch) || 
         (lead.email || '').toLowerCase().includes(lowerSearch) ||
         (lead.empresa || '').toLowerCase().includes(lowerSearch) ||
-        (lead.telefone || '').toLowerCase().includes(lowerSearch);
+        (lead.telefone || '').toLowerCase().includes(lowerSearch) ||
+        (lead.id_conta || '').toLowerCase().includes(lowerSearch);
       
       const matchesResponsible = !filterResponsible || lead.responsavel === filterResponsible;
       const matchesPriority = !filterPriority || lead.prioridade === filterPriority;
@@ -101,7 +102,7 @@ const App: React.FC = () => {
             <i className="fas fa-search text-gray-400 mr-3 text-sm"></i>
             <input
               type="text"
-              placeholder="Pesquisar por nome, email, empresa ou telefone..."
+              placeholder="Pesquisar por nome, email, empresa, telefone ou ID..."
               className="bg-transparent border-none focus:ring-0 w-full text-xs text-primary placeholder-gray-400"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
